@@ -28,8 +28,8 @@ const int right_dir=1;
 const int down_dir=2;
 const int left_dir=3;
 //Movement changes
-const int row_change[4]={-1,0,1,0};
-const int column_change[4]={0,1,0,-1};
+extern const int row_change[4];
+extern const int column_change[4];
 
 
 // ----------------------------------------------------------------------------

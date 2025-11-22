@@ -1,6 +1,66 @@
 #include "simulation_state.h"
 #include <cstring>
 
+//Movement changes
+const int row_change[4]={-1,0,1,0};
+const int column_change[4]={0,1,0,-1};
+
+//Grid Variables
+int numRows;
+int numColumns;
+char grid[max_Rows][max_Columns];
+int safetyDelay[max_Rows][max_Columns];
+
+//Trains variables
+int numTrains;
+int trainRow[max_trains];
+int trainColumn[max_trains];
+int trainColor[max_trains];
+int trainDirection[max_trains];
+int trainWait[max_trains];
+
+//Switch Variables
+int numSwitches;
+char switchLetter[max_switches];
+int switchState[max_switches];
+int switchMode[max_switches];
+int switchCounter[max_switches][4];
+int switchK[max_switches][4];
+int switchFlipped[max_switches];
+
+//Spawn point variables
+int numSpawn;
+int spawnRow[max_trains];
+int spawnColumn[max_trains];
+int spawnTick[max_trains];
+int spawnTrainID[max_trains];
+int spawnDirection[max_trains];
+int spawnColor[max_trains];
+
+//Destination point variables
+int numDestinations;
+int destinationRow[max_trains];
+int destinationColumn[max_trains];
+int destinationTrainID[max_trains];
+
+//Simulation parameters
+int currentTick;
+int totalTicks;
+int levelSeed;
+int weatherType;
+int simulationRunning;
+
+//Data metric
+int trainsReached;
+int trainsCrashed;
+int totalWaitTicks;
+int totalEnergy;
+int switchFlips;
+int signalViolations;
+
+//Emergency halt
+int emergencyHalt[max_Rows][max_Columns];
+int emergencyHaltActive;
 // ============================================================================
 // INITIALIZE SIMULATION STATE
 // ============================================================================
@@ -9,11 +69,10 @@
 // ----------------------------------------------------------------------------
 // Called before loading a new level.
 // ----------------------------------------------------------------------------
-void initializeSimulationState(){
     // ============================================================================
 // SIMULATION_STATE.CPP - Global state definitions
 // ============================================================================
-
+void initializeSimulationState(){
 // ----------------------------------------------------------------------------
 // GRID
 // ----------------------------------------------------------------------------
@@ -21,7 +80,8 @@ void initializeSimulationState(){
     numColumns=0;
     for(int i=0;i<max_Rows;i++){
         for(int j=0;j<max_Columns;j++){
-            grid[i][j]='.';
+            grid[i][j]=empty_space;
+            safetyDelay[i][j] = 0;
         }
     }
 

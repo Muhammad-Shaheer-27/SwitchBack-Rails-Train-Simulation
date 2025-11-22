@@ -8,25 +8,25 @@
 // ============================================================================
 
 // Check if a position is within grid bounds
-bool isInBounds();
+bool isInBounds(int i,int j);
 
 // Check if a tile is a track (can trains move on it?)
-bool isTrackTile();
+bool isTrackTile(int i,int j);
 
 // Check if a tile is a switch (A-Z)
-bool isSwitchTile();
+bool isSwitchTile(int i,int j);
 
 // Get the switch index (0-25) from a switch character (A-Z)
-int getSwitchIndex();
+int getSwitchIndex(int i,int j);
 
 // Check if a position is a spawn point
-bool isSpawnPoint();
+bool isSpawnPoint(int i,int j);
 
 // Check if a position is a destination point
-bool isDestinationPoint();
+bool isDestinationPoint(int i,int j);
 
 // Place or remove a safety tile at a position (for mouse editing)
 // Returns true if successful
-bool toggleSafetyTile();
+bool toggleSafetyTile(int i,int j);
 
 #endif
