@@ -18,13 +18,13 @@ void spawnTrainsForTick();
 void determineAllRoutes();
 
 // Compute next position/direction for a train.
-bool determineNextPosition();
+bool determineNextPosition(int trainID,int &nextRow, int &nextColumn);
 
 // Get next direction on entering a tile.
-int getNextDirection();
+int getNextDirection(int trainID);
 
 // Choose best direction at a crossing.
-int getSmartDirectionAtCrossing();
+int getSmartDirectionAtCrossing(int trainID);
 
 // ----------------------------------------------------------------------------
 // TRAIN MOVEMENT
@@ -36,7 +36,7 @@ void moveAllTrains();
 // COLLISION DETECTION
 // ----------------------------------------------------------------------------
 // Detect trains targeting the same tile/swap/crossing.
-void detectCollisions();
+void detectCollisions(int nextRow[],int nextCol[],int nextDir[]);
 
 // ----------------------------------------------------------------------------
 // ARRIVALS
