@@ -27,6 +27,7 @@ int switchMode[max_switches];
 int switchCounter[max_switches][4];
 int switchK[max_switches][4];
 int switchFlipped[max_switches];
+int switchSignal[max_switches];
 
 //Spawn point variables
 int numSpawn;

@@ -104,6 +104,7 @@ extern int trainWait[max_trains]; //Ticks left to wait
 // GLOBAL STATE: SWITCHES (A-Z mapped to 0-25)
 // ----------------------------------------------------------------------------
 extern int numSwitches;
+extern int switchSignal[max_switches];
 extern char switchLetter[max_switches];
 extern int switchState[max_switches];
 extern int switchMode[max_switches];
