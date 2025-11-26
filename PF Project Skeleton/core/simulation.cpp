@@ -28,5 +28,5 @@ void simulateOneTick() {
 // CHECK IF SIMULATION IS COMPLETE
 // ----------------------------------------------------------------------------
 
-bool isSimulationComplete() {
+bool isSimulationComplete() { 
 }

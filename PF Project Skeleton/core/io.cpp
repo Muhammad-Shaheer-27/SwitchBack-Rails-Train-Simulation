@@ -3,18 +3,29 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <limits>
 
 using namespace std;
 
 // ============================================================================
-// IO.CPP - Level I/O and logging
+// IO.CPP - Level I/O (Smart Version)
 // ============================================================================
 
-// ----------------------------------------------------------------------------
-// LOAD LEVEL FILE
-// ----------------------------------------------------------------------------
-// Load a .lvl file into global state.
-// ----------------------------------------------------------------------------
+// Helper to read trains
+void readTrains(ifstream &file) {
+    cout << "DEBUG: Reading TRAINS section..." << endl;
+    while (file >> spawnTick[numSpawn]) {
+        file >> spawnColumn[numSpawn];    
+        file >> spawnRow[numSpawn];       
+        file >> spawnDirection[numSpawn]; 
+        file >> spawnColor[numSpawn];     
+        
+        spawnTrainID[numSpawn] = -1;      
+        cout << "DEBUG: Loaded Train " << numSpawn << " at Tick " << spawnTick[numSpawn] << endl;
+        numSpawn++;
+    }
+}
+
 bool loadLevelFile(string filename) {
     ifstream file(filename);
     
@@ -26,12 +37,10 @@ bool loadLevelFile(string filename) {
     string key;
     while (file >> key) {
         
-        // READ DIMENSIONS
         if (key == "ROWS:") file >> numRows;
         else if (key == "COLS:") file >> numColumns;
         else if (key == "SEED:") file >> levelSeed;
         
-        // READ WEATHER
         else if (key == "WEATHER:") {
             string w;
             file >> w;
@@ -40,43 +49,59 @@ bool loadLevelFile(string filename) {
             else if (w == "FOG") weatherType = weather_fog;
         }
         
-        // READ MAP
+        // --- SMART MAP READER ---
         else if (key == "MAP:") {
+            cout << "DEBUG: Reading MAP..." << endl;
+            file.ignore(numeric_limits<streamsize>::max(), '\n'); // Skip rest of "MAP:" line
+            
             for (int r = 0; r < numRows; r++) {
+                // 1. PEEK AHEAD: Is the next word a Keyword?
+                // We save the current file position
+                streampos oldPos = file.tellg();
+                string checkKeyword;
+                file >> checkKeyword; 
+
+                if (checkKeyword == "SWITCHES:" || checkKeyword == "TRAINS:") {
+                    // If we found a keyword, STOP reading the map!
+                    // Go back to before we read the keyword so the main loop handles it.
+                    file.seekg(oldPos); 
+                    break; 
+                }
+
+                // 2. If not a keyword, go back and read the line as a Map Row
+                file.seekg(oldPos);
                 string line;
-                file >> line;
+                getline(file, line);
+                
                 for (int c = 0; c < numColumns; c++) {
-                    grid[r][c] = line[c];
+                    if (c < (int)line.length()) {
+                        grid[r][c] = line[c];
+                    } else {
+                        grid[r][c] = '.'; 
+                    }
                 }
             }
         }
+        // ------------------------
         
-        // READ SWITCHES (AND TRAINS)
         else if (key == "SWITCHES:") {
+            cout << "DEBUG: Reading SWITCHES..." << endl;
             while (true) {
                 string temp;
-                file >> temp; 
+                if (!(file >> temp)) break; 
 
-                // Check if we reached the TRAINS section
                 if (temp == "TRAINS:") {
-                    while (file >> spawnTick[numSpawn]) {
-                        file >> spawnColumn[numSpawn];
-                        file >> spawnRow[numSpawn];
-                        file >> spawnDirection[numSpawn];
-                        file >> spawnColor[numSpawn];
-                        numSpawn++;
-                    }
-                    break;
+                    readTrains(file); 
+                    break; 
                 }
 
-                // Process Switch
                 int index = numSwitches;
                 switchLetter[index] = temp[0]; 
 
                 string modeStr;
                 file >> modeStr;
                 if (modeStr == "PER_DIR") switchMode[index] = switchmode_per_dir; 
-                else switchMode[index] = 1; // Global
+                else switchMode[index] = 1; 
                 
                 file >> switchState[index]; 
                 
@@ -84,118 +109,104 @@ bool loadLevelFile(string filename) {
                     file >> switchK[index][i];
                     switchCounter[index][i] = 0;
                 }
+                
+                // Consume "STRAIGHT TURN" labels
+                string label1, label2;
+                file >> label1 >> label2;
+                
                 switchFlipped[index] = 0;
                 numSwitches++;
             }
         }
+
+        else if (key == "TRAINS:") {
+            readTrains(file);
+        }
     }
     
     file.close();
+    
+    // AUTO ASSIGN DESTINATIONS
+    numDestinations = 0;
+    int dRows[max_trains];
+    int dCols[max_trains];
+    int dCount = 0;
+
+    for(int r = 0; r < numRows; r++) {
+        for(int c = 0; c < numColumns; c++) {
+            if(grid[r][c] == 'D') {
+                dRows[dCount] = r;
+                dCols[dCount] = c;
+                dCount++;
+            }
+        }
+    }
+
+    for(int i = 0; i < numSpawn; i++) { 
+        int targetIndex = 0; 
+        for(int k = 0; k < dCount; k++) {
+            if(dRows[k] == spawnRow[i]) {
+                targetIndex = k;
+                break;
+            }
+        }
+        destinationRow[numDestinations] = dRows[targetIndex];
+        destinationColumn[numDestinations] = dCols[targetIndex];
+        destinationTrainID[numDestinations] = i;
+        numDestinations++;
+    }
+
     cout << "Level loaded: " << filename << endl;
     return true;
 }
 
 // ----------------------------------------------------------------------------
-// INITIALIZE LOG FILES
-// ----------------------------------------------------------------------------
-// Create/clear CSV logs with headers.
+// LOGGING FUNCTIONS
 // ----------------------------------------------------------------------------
 void initializeLogFiles() {
     ofstream trace("trace.csv");
-    if (trace.is_open()) {
-        trace << "Tick,TrainID,X,Y,Direction,State\n";
-        trace.close();
-    }
-
+    if (trace.is_open()) { trace << "Tick,TrainID,X,Y,Direction,State\n"; trace.close(); }
     ofstream switches("switches.csv");
-    if (switches.is_open()) {
-        switches << "Tick,Switch,Mode,State\n";
-        switches.close();
-    }
-
+    if (switches.is_open()) { switches << "Tick,Switch,Mode,State\n"; switches.close(); }
     ofstream signals("signals.csv");
-    if (signals.is_open()) {
-        signals << "Tick,Switch,Signal\n";
-        signals.close();
-    }
+    if (signals.is_open()) { signals << "Tick,Switch,Signal\n"; signals.close(); }
 }
 
-// ----------------------------------------------------------------------------
-// LOG TRAIN TRACE
-// ----------------------------------------------------------------------------
-// Append tick, train id, position, direction, state to trace.csv.
-// ----------------------------------------------------------------------------
 void logTrainTrace() {
     ofstream file("trace.csv", ios::app);
     if (!file.is_open()) return;
-
     for (int i = 0; i < numTrains; i++) {
-        // Only log active trains (where Row is not -1)
         if (trainRow[i] != -1) { 
-            file << currentTick << ","
-                 << i << "," 
-                 << trainColumn[i] << "," 
-                 << trainRow[i] << ","   
-                 << trainDirection[i] << ","
-                 << trainWait[i] << "\n"; 
+            file << currentTick << "," << i << "," << trainColumn[i] << "," 
+                 << trainRow[i] << "," << trainDirection[i] << "," << trainWait[i] << "\n"; 
         }
     }
     file.close();
 }
 
-// ----------------------------------------------------------------------------
-// LOG SWITCH STATE
-// ----------------------------------------------------------------------------
-// Append tick, switch id/mode/state to switches.csv.
-// ----------------------------------------------------------------------------
 void logSwitchState() {
     ofstream file("switches.csv", ios::app);
     if (!file.is_open()) return;
-
     for (int i = 0; i < numSwitches; i++) {
-        file << currentTick << ","
-             << switchLetter[i] << ","
-             << switchMode[i] << ","
-             << switchState[i] << "\n";
+        file << currentTick << "," << switchLetter[i] << "," << switchMode[i] << "," << switchState[i] << "\n";
     }
     file.close();
 }
 
-// ----------------------------------------------------------------------------
-// LOG SIGNAL STATE
-// ----------------------------------------------------------------------------
-// Append tick, switch id, signal color to signals.csv.
-// ----------------------------------------------------------------------------
 void logSignalState() {
     ofstream file("signals.csv", ios::app);
     if (!file.is_open()) return;
-
     for (int i = 0; i < numSwitches; i++) {
-         // Placeholder: We will add actual signal logic later
-         file << currentTick << ","
-              << switchLetter[i] << ","
-              << "GREEN" << "\n"; 
+         file << currentTick << "," << switchLetter[i] << "," << "GREEN" << "\n"; 
     }
     file.close();
 }
 
-// ----------------------------------------------------------------------------
-// WRITE FINAL METRICS
-// ----------------------------------------------------------------------------
-// Write summary metrics to metrics.txt.
-// ----------------------------------------------------------------------------
 void writeMetrics() {
     ofstream file("metrics.txt");
     if (!file.is_open()) return;
-
-    file << "Simulation Metrics\n";
-    file << "------------------\n";
+    file << "Simulation Metrics\n------------------\n";
     file << "Trains Reached: " << trainsReached << "\n";
     file << "Trains Crashed: " << trainsCrashed << "\n";
-    file << "Total Wait Ticks: " << totalWaitTicks << "\n";
-    file << "Total Energy: " << totalEnergy << "\n";
-    file << "Switch Flips: " << switchFlips << "\n";
-    file << "Signal Violations: " << signalViolations << "\n";
-    
     file.close();
 }
