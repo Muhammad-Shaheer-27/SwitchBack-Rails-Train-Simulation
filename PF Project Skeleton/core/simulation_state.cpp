@@ -107,6 +107,7 @@ void initializeSimulationState(){
         switchState[i]=0;
         switchMode[i]=switchmode_per_dir;
         switchFlipped[i]=0;
+        switchSignal[i] = signal_green;
         for(int j=0;j<4;j++){
             switchCounter[i][j]=0;
             switchK[i][j]=0;
@@ -154,12 +155,4 @@ void initializeSimulationState(){
             emergencyHalt[i][j]=0;
         }
     }
-// ============================================================================
-// INITIALIZE SIMULATION STATE
-// ============================================================================
-// ----------------------------------------------------------------------------
-// Resets all global simulation state.
-// ----------------------------------------------------------------------------
-// Called before loading a new level.
-// ----------------------------------------------------------------------------
 }

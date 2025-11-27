@@ -94,18 +94,68 @@ int getNextDirection(int trainID) {
     }
     case right_curve:
     if(trainDirection[trainID]==up_dir) return right_dir;
-    if(trainDirection[trainID]==left_dir) return down_dir;
-    return trainDirection[trainID];
+    else if(trainDirection[trainID]==left_dir) return down_dir;
+    break;
     case left_curve:
     if(trainDirection[trainID]==up_dir) return left_dir;
-    if(trainDirection[trainID]==right_dir) return down_dir;
-    return trainDirection[trainID];
+    else if(trainDirection[trainID]==right_dir) return down_dir;
+    break;
     case crossing:
     return getSmartDirectionAtCrossing(trainID);
-    default:return trainDirection[trainID];
+    default:break;
     }
-}
+    //Switch logic
+    if(isSwitchTile(trainRow[trainID],trainColumn[trainID])){   //Check if switch tile 
+        int switchID=getSwitchIndex(trainRow[trainID],trainColumn[trainID]);    //Map switch
+        int nextDir=trainDirection[trainID];    //Track next train direction
 
+        if(switchMode[switchID]==switchmode_per_dir){
+            //Increase counter for current direction
+            switchCounter[switchID][trainDirection[trainID]]++;
+            //Flip when counter reaches upper limit
+            if(switchCounter[switchID][trainDirection[trainID]]>=switchK[switchID][trainDirection[trainID]]) {
+                switchFlipped[switchID]=!switchFlipped[switchID];
+                //Reset the direction counters to zero after flip
+                switchCounter[switchID][trainDirection[trainID]]=0;
+        }
+         if(switchFlipped[switchID]){
+                if(trainDirection[trainID]==up_dir) nextDir=right_dir;
+                else if(trainDirection[trainID]==right_dir) nextDir=down_dir;
+                else if(trainDirection[trainID]==down_dir) nextDir=left_dir;
+                else if(trainDirection[trainID]==left_dir) nextDir=up_dir;
+            }
+            else {
+                if(trainDirection[trainID]==up_dir) nextDir=left_dir;
+                else if(trainDirection[trainID]==right_dir) nextDir=up_dir;
+                else if(trainDirection[trainID]==down_dir) nextDir=right_dir;
+                else if(trainDirection[trainID]==left_dir) nextDir=down_dir;
+            }       
+    }
+    else{
+         // Increment all direction counter
+            switchCounter[switchID][0]++;
+            //Flip when upper limit reached
+            if(switchCounter[switchID][0]>=switchK[switchID][0]){
+                switchFlipped[switchID]=!switchFlipped[switchID];
+                //Reset counter for next cycle
+                switchCounter[switchID][0]=0;
+            }
+            if(switchFlipped[switchID]){
+                if(trainDirection[trainID]==up_dir) nextDir=right_dir;
+                else if(trainDirection[trainID]==right_dir) nextDir=down_dir;
+                else if(trainDirection[trainID]==down_dir) nextDir=left_dir;
+                else if(trainDirection[trainID]==left_dir) nextDir=up_dir;
+            } else {
+                if(trainDirection[trainID]==up_dir) nextDir=left_dir;
+                else if(trainDirection[trainID]==right_dir) nextDir=up_dir;
+                else if(trainDirection[trainID]==down_dir) nextDir=right_dir;
+                else if(trainDirection[trainID]==left_dir) nextDir=down_dir;
+            }
+        }
+        return nextDir;
+    }
+    return trainDirection[trainID];
+}
 // ----------------------------------------------------------------------------
 // SMART ROUTING AT CROSSING - Route train to its matched destination
 // ----------------------------------------------------------------------------
@@ -171,23 +221,39 @@ void moveAllTrains() {
             nextDir[i]=trainDirection[i];
             continue;
         }
-        //Calculate next positions
-       nextRow[i]=trainRow[i]+row_change[trainDirection[i]];
-        nextCol[i]=trainColumn[i]+column_change[trainDirection[i]];
-        nextDir[i]=trainDirection[i];
-        //Check bounds 
-        if (nextRow[i]<0||nextRow[i]>=numRows||nextCol[i]<0||nextCol[i]>=numColumns){
-            nextRow[i]=trainRow[i];
-            nextCol[i]=trainColumn[i];
+        //Halt train
+        if(trainWait[i]>0){
+        nextRow[i]=trainRow[i];     //No movement
+        nextCol[i]=trainColumn[i];
+        nextDir[i]=trainDirection[i];  //Direction unchanged
+        trainWait[i]--;  //Reduce wait time
+        totalWaitTicks++;
+        continue;
         }
+        //Calculate next positions
+       if(!determineNextPosition(i,nextRow[i],nextCol[i])) {
+            // If next tile is invalid then stay in place
+            nextRow[i] = trainRow[i];
+            nextCol[i] = trainColumn[i];
+        }
+
+        // Determine next direction for the movement
+        nextDir[i] = getNextDirection(i);
     }
-    detectCollisions(nextRow,nextCol,nextDir);
+    // Resolve collisions based on next positions
+    detectCollisions(nextRow, nextCol, nextDir);
     //Apply movement
     for(int i=0;i<numTrains;i++){
         if(nextRow[i]!=-1){     //Inactive trains skipped
             trainRow[i]=nextRow[i]; //Applies new position for all trains
             trainColumn[i]=nextCol[i];
             trainDirection[i]=nextDir[i];
+
+            //Check if train has entered safety tile
+            char tile=grid[trainRow[i]][trainColumn[i]];
+            if(tile=='='){
+                trainWait[i]=1;
+            }
         }
     }
 }
@@ -201,49 +267,75 @@ void detectCollisions(int nextRow[],int nextCol[],int nextDir[]) {
     for(int i=0;i<numTrains;i++){
         if(trainRow[i]==-1) continue;
         for(int j=i+1;j<numTrains;j++){
-            if(nextRow[j]==-1) continue;
+            if(trainRow[j]==-1) continue;
             if(nextRow[i]==nextRow[j] && nextCol[i]==nextCol[j]){
             char tile=grid[nextRow[i]][nextCol[i]];
             int dist_i=abs(nextRow[i]-destinationRow[i])+abs(nextCol[i]-destinationColumn[i]);
             int dist_j=abs(nextRow[j]-destinationRow[j])+abs(nextCol[j]-destinationColumn[j]);
             if(tile==crossing) {
-            if(dist_i==dist_j) { //Collison
+            if(dist_i==dist_j){ //Collison
+                nextRow[i]=trainRow[i];
+                nextCol[i]=trainColumn[i];
+                nextRow[j]=trainRow[j];
+                nextCol[j]=trainColumn[j];
+                trainsCrashed+=2;
+            } 
+            else if(dist_i>dist_j){
+                nextRow[j]=trainRow[j];
+                nextCol[j]=trainColumn[j];
+            } 
+            else{
+                nextRow[j]=trainRow[j];
+                nextCol[j]=trainColumn[j];
+            }
+            } 
+            else { //normal tile collision
+                if(dist_i==dist_j) {
+                //Both equally far then collision
                 nextRow[i]=trainRow[i];
                 nextCol[i]=trainColumn[i];
                 nextRow[j]=trainRow[j];
                 nextCol[j]=trainColumn[j];
                 trainsCrashed+=2;
             } else if(dist_i>dist_j) {
+                //i is farther then move i stop j
                 nextRow[j]=trainRow[j];
                 nextCol[j]=trainColumn[j];
-            } else {
-                nextRow[i]=trainRow[i];
-                nextCol[i]=trainColumn[i];
-            }
-            } 
-            else { //normal tile collision
-                if(dist_i == dist_j) {
-                //Both equally far then collision
-                nextRow[i] = trainRow[i];
-                nextCol[i] = trainColumn[i];
-                nextRow[j] = trainRow[j];
-                nextCol[j] = trainColumn[j];
-                trainsCrashed += 2;
-            } else if(dist_i > dist_j) {
-                //i is farther then move i stop j
-                nextRow[j] = trainRow[j];
-                nextCol[j] = trainColumn[j];
             } 
             else {
                 //j is farther then move j stop i
-                nextRow[i] = trainRow[i];
-                nextCol[i] = trainColumn[i];
+                nextRow[j]=trainRow[j];
+                nextCol[j]=trainColumn[j];
+                }
+            }
+        }
+        //Check head on collision
+        else if(nextRow[i]==trainRow[j]&&nextCol[i]==trainColumn[j]&&
+                nextRow[j]==trainRow[i]&&nextCol[j]==trainColumn[i]){
+                    int dist_i=abs(nextRow[i]-destinationRow[i])+abs(nextCol[i]-destinationColumn[i]);
+                    int dist_j=abs(nextRow[j]-destinationRow[j])+abs(nextCol[j]-destinationColumn[j]);
+                    if(dist_i==dist_j){
+                        //Equal distance then both crash
+                        nextRow[i]=trainRow[i];
+                        nextCol[i]=trainColumn[i];
+                        nextRow[j]=trainRow[j];
+                        nextCol[j]=trainColumn[j];
+                        trainsCrashed+=2;
+                    }
+                    else if(dist_i>dist_j){
+                        //i is farther then i moves j waits
+                        nextRow[j]=trainRow[j];
+                        nextCol[j]=trainColumn[j];
+                    }
+                    else{
+                        //j is farther then j moves i waits
+                        nextRow[i]=trainRow[i];
+                        nextCol[i]=trainColumn[i];
                     }
                 }
             }
         }
     }
-}
 
 // ----------------------------------------------------------------------------
 // CHECK ARRIVALS

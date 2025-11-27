@@ -111,6 +111,8 @@ extern int switchMode[max_switches];
 extern int switchCounter[max_switches][4];//Counter for perdirection for each switch(0,1,2,3)
 extern int switchK[max_switches][4];//K value for each switch perdirection(entries left before flip)
 extern int switchFlipped[max_switches];//Check if switch will flip
+extern int switchRouting[max_switches][4][2];
+
 
 // ----------------------------------------------------------------------------
 // GLOBAL STATE: SPAWN POINTS
