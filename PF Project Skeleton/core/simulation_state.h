@@ -11,8 +11,8 @@
 // GRID CONSTANTS
 // ----------------------------------------------------------------------------
 //Grid Size
-const int max_Rows=50;
-const int max_Columns=50;
+const int max_Rows=70;
+const int max_Columns=70;
 //Tiles
 const char empty_space='.';
 const char horizontal_track='-';
