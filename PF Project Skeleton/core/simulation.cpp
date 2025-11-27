@@ -15,6 +15,18 @@
 // ----------------------------------------------------------------------------
 
 void initializeSimulation() {
+    //Reset all variables
+    initializeSimulationState();
+    //Random seed generation
+    if(levelSeed!=0){
+        srand(levelSeed);
+    }
+    else{
+        srand((unsigned int)time(0));
+    }
+    //Begin simulation
+    simulationRunning=1;
+    currentTick=0;
 }
 
 // ----------------------------------------------------------------------------
@@ -22,11 +34,38 @@ void initializeSimulation() {
 // ----------------------------------------------------------------------------
 
 void simulateOneTick() {
+    if(!simulationRunning) return;
+    //Spawn trains for current tick
+    spawnTrainsForTick();
+    //Update switch counters and determine flips
+    updateSwitchCounters();
+    queueSwitchFlips();
+    //Determine next direction for all trains
+    determineAllRoutes();
+    //Move trains
+    moveAllTrains();
+    //Implement deferred switch flips
+    applyDeferredFlips();
+    //Signal lights
+    updateSignalLights();
+    //Emergency halt and update timers
+    applyEmergencyHalt();
+    updateEmergencyHalt();
+    //Check trains reached destination
+    checkArrivals();
+    //Increase simulation tick
+    currentTick++;
 }
 
 // ----------------------------------------------------------------------------
 // CHECK IF SIMULATION IS COMPLETE
 // ----------------------------------------------------------------------------
 
-bool isSimulationComplete() { 
+bool isSimulationComplete() {
+    for(int i=0;i<numTrains;i++){   //Check all trains
+        if(trainRow[i]!=-1){
+            return false;   //Atleast one train running
+        }
+    }
+    return true;    //If all trains inactive then simulation complete
 }
