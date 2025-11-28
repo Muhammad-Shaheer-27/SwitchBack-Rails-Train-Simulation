@@ -90,13 +90,6 @@ int main(int argc, char* argv[]) {
     cout << "Level Loaded Successfully: " << argv[1] << endl;
     cout << "Press ENTER to start the simulation..." << endl;
     cin.get(); // Wait for user input
-// DEBUG: Check initial state
-cout << "\n=== DEBUG: INITIAL STATE ===\n";
-cout << "numTrains: " << numTrains << endl;
-cout << "numSpawn: " << numSpawn << endl;
-cout << "numDestinations: " << numDestinations << endl;
-cout << "currentTick: " << currentTick << endl;
-
 for (int i = 0; i < numTrains; i++) {
     cout << "Train " << i << ": row=" << trainRow[i] << " col=" << trainColumn[i] << endl;
 }
@@ -108,14 +101,6 @@ cout << "==============================\n\n";
         
         // A. Run one tick of simulation logic
         simulateOneTick();
-        // DEBUG: Print train positions
-    cout << "DEBUG Tick " << currentTick << " Train Positions:\n";
-    for (int i = 0; i < numTrains; i++) {
-        if (trainRow[i] != -1) {
-            cout << "  Train " << i << ": (" << trainRow[i] << "," << trainColumn[i] 
-                 << ") dir=" << trainDirection[i] << " wait=" << trainWait[i] << "\n";
-        }
-    }
         // B. Log data to CSV files
         logTrainTrace();
         logSwitchState();
