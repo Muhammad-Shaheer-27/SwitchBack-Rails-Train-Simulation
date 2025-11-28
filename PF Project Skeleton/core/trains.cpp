@@ -3,7 +3,8 @@
 #include "grid.h"
 #include "switches.h"
 #include <cstdlib>
-
+#include<iostream>
+using namespace std;
 // ============================================================================
 // TRAINS.CPP - Train logic
 // ============================================================================
@@ -48,6 +49,13 @@ void spawnTrainsForTick() {
             trainWait[freeTrain]=0;
 
             spawnTrainID[i] = freeTrain;  // Mark train as spawned
+            // If this spawn had a matching destination entry (destinationTrainID set to spawn index),
+            // update destinationTrainID to point to the actual train index we just allocated.
+            for (int d = 0; d < numDestinations; d++) {
+                if (destinationTrainID[d] == i) {
+                    destinationTrainID[d] = freeTrain;
+                }
+            }
             numTrains++;
         }
     }
@@ -61,12 +69,20 @@ void spawnTrainsForTick() {
 bool determineNextPosition(int trainID,int &nextRow,int &nextColumn) {
     nextRow=trainRow[trainID]+row_change[trainDirection[trainID]];  //Calculate next row 
     nextColumn=trainColumn[trainID]+column_change[trainDirection[trainID]]; //Calculate next column
-
-    if(!isInBounds(nextRow,nextColumn)||!isTrackTile(nextRow,nextColumn))
-    return false;
-     if(nextRow<0 || nextRow>=numRows || nextColumn<0 || nextColumn>=numColumns)
+    
+    if(!isInBounds(nextRow, nextColumn)) {
         return false;
-
+    }
+    
+    char nextTile = grid[nextRow][nextColumn];
+    
+    if (!(isTrackTile(nextRow, nextColumn) || nextTile == spawn || nextTile == destination || nextTile == '=' || isSwitchTile(nextRow, nextColumn)))  {
+        return false;
+    }
+    
+    if(nextRow < 0 || nextRow >= numRows || nextColumn < 0 || nextColumn >= numColumns) {
+        return false;
+    }
     return true;
 }
 
@@ -75,9 +91,12 @@ bool determineNextPosition(int trainID,int &nextRow,int &nextColumn) {
 // ----------------------------------------------------------------------------
 // Return new direction after entering the tile.
 // ----------------------------------------------------------------------------
-int getNextDirection(int trainID) {
-    char track=grid[trainRow[trainID]][trainColumn[trainID]];   //Check the current tile a train is present on
+int getNextDirection(int trainID,int row,int col) {
+    char track = grid[row][col];   //Check the current tile a train is present on
     switch(track){
+    case spawn:
+    case destination:
+    case '=':
     case horizontal_track:
     if(trainDirection[trainID]==left_dir){
         return left_dir;
@@ -108,48 +127,56 @@ int getNextDirection(int trainID) {
     if(isSwitchTile(trainRow[trainID],trainColumn[trainID])){   //Check if switch tile 
         int switchID=getSwitchIndex(trainRow[trainID],trainColumn[trainID]);    //Map switch
         int nextDir=trainDirection[trainID];    //Track next train direction
-
+        // Update counters according to switch mode
         if(switchMode[switchID]==switchmode_per_dir){
             //Increase counter for current direction
             switchCounter[switchID][trainDirection[trainID]]++;
             //Flip when counter reaches upper limit
             if(switchCounter[switchID][trainDirection[trainID]]>=switchK[switchID][trainDirection[trainID]]) {
                 switchFlipped[switchID]=!switchFlipped[switchID];
-                //Reset the direction counters to zero after flip
+                //Reset the direction counter to zero after flip
                 switchCounter[switchID][trainDirection[trainID]]=0;
-        }
-         if(switchFlipped[switchID]){
-                if(trainDirection[trainID]==up_dir) nextDir=right_dir;
-                else if(trainDirection[trainID]==right_dir) nextDir=down_dir;
-                else if(trainDirection[trainID]==down_dir) nextDir=left_dir;
-                else if(trainDirection[trainID]==left_dir) nextDir=up_dir;
             }
-            else {
-                if(trainDirection[trainID]==up_dir) nextDir=left_dir;
-                else if(trainDirection[trainID]==right_dir) nextDir=up_dir;
-                else if(trainDirection[trainID]==down_dir) nextDir=right_dir;
-                else if(trainDirection[trainID]==left_dir) nextDir=down_dir;
-            }       
-    }
-    else{
-         // Increment all direction counter
+        } else {
+            // Increment global counter (index 0)
             switchCounter[switchID][0]++;
-            //Flip when upper limit reached
             if(switchCounter[switchID][0]>=switchK[switchID][0]){
                 switchFlipped[switchID]=!switchFlipped[switchID];
-                //Reset counter for next cycle
                 switchCounter[switchID][0]=0;
             }
-            if(switchFlipped[switchID]){
-                if(trainDirection[trainID]==up_dir) nextDir=right_dir;
-                else if(trainDirection[trainID]==right_dir) nextDir=down_dir;
-                else if(trainDirection[trainID]==down_dir) nextDir=left_dir;
-                else if(trainDirection[trainID]==left_dir) nextDir=up_dir;
-            } else {
-                if(trainDirection[trainID]==up_dir) nextDir=left_dir;
-                else if(trainDirection[trainID]==right_dir) nextDir=up_dir;
-                else if(trainDirection[trainID]==down_dir) nextDir=right_dir;
-                else if(trainDirection[trainID]==left_dir) nextDir=down_dir;
+        }
+
+        // Choose outgoing direction based on switch flip state and actual neighbouring track availability.
+        // Preference order: straight, then (left/right) depending on flipped state, then back.
+        int straight = trainDirection[trainID];
+        int right = (trainDirection[trainID] + 1) % 4;
+        int left = (trainDirection[trainID] + 3) % 4;
+        int back = (trainDirection[trainID] + 2) % 4;
+
+        int candidates[4];
+        candidates[0] = straight;
+        if(switchFlipped[switchID]){ // flipped: prefer right turn
+            candidates[1] = right;
+            candidates[2] = left;
+        } else { // not flipped: prefer left turn
+            candidates[1] = left;
+            candidates[2] = right;
+        }
+        candidates[3] = back;
+
+        // Find first candidate that leads to a valid track-like tile
+        for(int k=0;k<4;k++){
+            int dir = candidates[k];
+            int nr = trainRow[trainID] + row_change[dir];
+            int nc = trainColumn[trainID] + column_change[dir];
+            if(!isInBounds(nr,nc)){
+                continue;
+            }
+            char nt = grid[nr][nc];
+            bool valid = (isTrackTile(nr,nc) || isSwitchTile(nr,nc) || nt==spawn || nt==destination || nt=='=');
+            if(valid){
+                nextDir = dir;
+                break;
             }
         }
         return nextDir;
@@ -199,7 +226,7 @@ void determineAllRoutes() {
             continue;   //Train already present at destination
         }
         //Determine next direction
-        trainDirection[i] = getNextDirection(i);
+        trainDirection[i] = getNextDirection(i,trainRow[i],trainColumn[i]);
     }
 }
 
@@ -213,7 +240,8 @@ void moveAllTrains() {
     int nextRow[max_trains];
     int nextCol[max_trains];
     int nextDir[max_trains];
-    
+    int oldRow[max_trains];
+    int oldCol[max_trains];
     for(int i = 0;i<numTrains;i++) {
         if(trainRow[i]==-1) { // inactive trains set to default 
             nextRow[i]=-1;
@@ -232,14 +260,22 @@ void moveAllTrains() {
         }
         //Calculate next positions
        if(!determineNextPosition(i,nextRow[i],nextCol[i])) {
-            // If next tile is invalid then stay in place
+            //If next tile is invalid then stay in place
             nextRow[i] = trainRow[i];
-            nextCol[i] = trainColumn[i];
+            nextCol[i] = trainColumn[i];   
         }
 
-        // Determine next direction for the movement
-        nextDir[i] = getNextDirection(i);
+        //Determine next direction for the movement
+        nextDir[i] = getNextDirection(i,trainRow[i],trainColumn[i]);
     }
+
+    
+    //Save previous positions
+    for(int i=0;i<numTrains;i++){
+        oldRow[i] = trainRow[i];
+        oldCol[i] = trainColumn[i];
+    }
+
     // Resolve collisions based on next positions
     detectCollisions(nextRow, nextCol, nextDir);
     //Apply movement
@@ -251,13 +287,15 @@ void moveAllTrains() {
 
             //Check if train has entered safety tile
             char tile=grid[trainRow[i]][trainColumn[i]];
+            //Apply safety wait if train entered safety tile
             if(tile=='='){
-                trainWait[i]=1;
+                if(!(oldRow[i]==trainRow[i] && oldCol[i]==trainColumn[i])){
+                    trainWait[i]=1;
+                }
             }
         }
     }
 }
-
 // ----------------------------------------------------------------------------
 // DETECT COLLISIONS WITH PRIORITY SYSTEM
 // ----------------------------------------------------------------------------
@@ -346,11 +384,14 @@ void checkArrivals() {
     for(int i=0;i<numTrains;i++){   //Check all trains
         if(trainRow[i]==-1) continue;   //Skip inactive trains
         for(int j=0;j<numDestinations;j++){ 
-            if(destinationTrainID[j]==i && trainRow[i]==destinationRow[j] &&
-                trainColumn[i]==destinationColumn[j]){  //Check if train reached destination
-                trainsReached++;    //If reached then increament
+            //Train removed when it reached destination
+            if(trainRow[i]==destinationRow[j] && trainColumn[i]==destinationColumn[j]){
+                trainsReached++;    //If reached then increment
                 trainRow[i]=-1;
                 trainColumn[i]=-1;  //Mark that train as inactive
+                //Remove destination index for train
+                if(destinationTrainID[j]==i) destinationTrainID[j] = -1;
+                break; //Stop checking other destinations for this train
              }
         }
     }

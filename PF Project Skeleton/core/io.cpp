@@ -72,7 +72,11 @@ bool loadLevelFile(string filename) {
                 getline(file, line);
 
                 int len = 0;
-                while (line[len] != '\0') len++;
+                //Check length
+                while (len < (int)line.size()) {
+                    if (line[len] == '\r') break;
+                    len++;
+                }
 
                 bool isSwitchHeader = false;
                 bool isTrainHeader = false;
@@ -97,11 +101,14 @@ bool loadLevelFile(string filename) {
 
                 for (int c = 0; c < numColumns; c++) {
                     if (c < len) {
-                        if (line[c] != '\r') {
+                        //Apply empty space correctlg
+                        if (line[c] != '\r' && line[c] != ' ') {
                             grid[r][c] = line[c];
+                        } else {
+                            grid[r][c] = empty_space;
                         }
                     } else {
-                        grid[r][c] = '.';
+                        grid[r][c] = empty_space;
                     }
                 }
             }
@@ -144,17 +151,17 @@ bool loadLevelFile(string filename) {
 
         // 4. READ TRAINS
         else if (temp == "TRAINS:") {
+            // We'll store raw values first and resolve coordinates after the full MAP is parsed.
+            int rawRow, rawCol;
             while (file >> spawnTick[numSpawn]) {
                 file >> spawnColumn[numSpawn];
-                file >> spawnRow[numSpawn];
+                file >> rawRow; // read raw row value from file
                 file >> spawnDirection[numSpawn];
                 file >> spawnColor[numSpawn];
-                
-                // --- FIX: Adjust Coordinate ---
-                // The file seems to use 1-based indexing for rows, but C++ uses 0.
-                // We subtract 1 to snap the train onto the correct track.
-                spawnRow[numSpawn] = spawnRow[numSpawn] - 1; 
-                
+
+                // store raw value temporarily in spawnRow for now
+                spawnRow[numSpawn] = rawRow;
+
                 spawnTrainID[numSpawn] = -1; 
                 numSpawn++;
             }
@@ -163,7 +170,7 @@ bool loadLevelFile(string filename) {
     
     file.close();
 
-    // AUTO-ASSIGN DESTINATIONS
+    //Assign destinations
     int dCount = 0;
     int dRows[max_trains];
     int dCols[max_trains];
@@ -174,6 +181,81 @@ bool loadLevelFile(string filename) {
                 dRows[dCount] = r;
                 dCols[dCount] = c;
                 dCount++;
+            }
+        }
+    }
+
+    //Fix spawn positions identification
+    for (int i = 0; i < numSpawn; i++) {
+        int rawR = spawnRow[i];
+        int rawC = spawnColumn[i];
+        bool fixed = false;
+        int candR[8];
+        int candC[8];
+        //candidates for spawn positions
+        candR[0] = rawR - 1; candC[0] = rawC - 1;
+        candR[1] = rawR - 1; candC[1] = rawC;
+        candR[2] = rawR;     candC[2] = rawC - 1;
+        candR[3] = rawR;     candC[3] = rawC;
+        candR[4] = rawC - 1; candC[4] = rawR - 1;
+        candR[5] = rawC - 1; candC[5] = rawR;
+        candR[6] = rawC;     candC[6] = rawR - 1;
+        candR[7] = rawC;     candC[7] = rawR;
+        for (int k = 0; k < 8; k++) {
+            int rr = candR[k];
+            int cc = candC[k];
+            if (rr < 0 || rr >= numRows || cc < 0 || cc >= numColumns) continue;
+            if (grid[rr][cc] == 'S') {
+                spawnRow[i] = rr;
+                spawnColumn[i] = cc;
+                fixed = true;
+                break;
+            }
+        }
+        if (!fixed) {
+            // Fallback: assume input was 1-based (row,col)
+            int rr = rawR - 1;
+            int cc = rawC - 1;
+            if (rr < 0) rr = 0;
+            if (cc < 0) cc = 0;
+            if (rr >= numRows) rr = 0;
+            if (cc >= numColumns) cc = 0;
+            spawnRow[i] = rr;
+            spawnColumn[i] = cc;
+        }
+    }
+
+    //Find S in map to assign spawn positions if needed
+    int sCount = 0;
+    int sRows[max_trains];
+    int sCols[max_trains];
+    for (int r = 0; r < numRows; r++) {
+        for (int c = 0; c < numColumns; c++) {
+            if (grid[r][c] == 'S') {
+                sRows[sCount] = r;
+                sCols[sCount] = c;
+                sCount++;
+                if (sCount >= max_trains) break;
+            }
+        }
+        if (sCount >= max_trains) break;
+    }
+    if (sCount > 0) {
+        //Check if any spawn doesn't match S
+        bool needFallback = false;
+        for (int i = 0; i < numSpawn; i++) {
+            int rr = spawnRow[i];
+            int cc = spawnColumn[i];
+            if (rr < 0 || rr >= numRows || cc < 0 || cc >= numColumns || grid[rr][cc] != 'S') {
+                needFallback = true;
+                break;
+            }
+        }
+        if (needFallback) {
+            for (int i = 0; i < numSpawn; i++) {
+                int idx = i % sCount;
+                spawnRow[i] = sRows[idx];
+                spawnColumn[i] = sCols[idx];
             }
         }
     }
@@ -192,7 +274,7 @@ bool loadLevelFile(string filename) {
 }
 
 // ----------------------------------------------------------------------------
-// LOGGING FUNCTIONS (Unchanged)
+// LOGGING FUNCTIONS
 // ----------------------------------------------------------------------------
 void initializeLogFiles() {
     ofstream f1("trace.csv");

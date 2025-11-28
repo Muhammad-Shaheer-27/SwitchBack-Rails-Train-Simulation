@@ -63,7 +63,7 @@ const int switch_max_K=3;
 //Switch modes
 const int PER_DIR=0;
 const int GLOBAL=1;
-const int switchmode_per_dir=2;     //Number of modes a switch can have per direction
+const int switchmode_per_dir=PER_DIR;     //Number of modes a switch can have per direction
 
 // ----------------------------------------------------------------------------
 // WEATHER CONSTANTS

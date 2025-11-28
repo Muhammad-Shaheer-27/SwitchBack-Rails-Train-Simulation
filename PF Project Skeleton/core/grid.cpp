@@ -22,7 +22,7 @@ bool isTrackTile(int i,int j) {
     if(!isInBounds(i,j)) return 0;
     char tile=grid[i][j];
     return(tile==horizontal_track ||tile==vertical_track||tile==right_curve||
-    tile==left_curve||tile==crossing);
+    tile==left_curve||tile==crossing||tile==spawn||tile==destination||tile=='=');
 }
 
 // ----------------------------------------------------------------------------

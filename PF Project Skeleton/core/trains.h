@@ -21,7 +21,7 @@ void determineAllRoutes();
 bool determineNextPosition(int trainID,int &nextRow, int &nextColumn);
 
 // Get next direction on entering a tile.
-int getNextDirection(int trainID);
+int getNextDirection(int trainID,int row,int col);
 
 // Choose best direction at a crossing.
 int getSmartDirectionAtCrossing(int trainID);

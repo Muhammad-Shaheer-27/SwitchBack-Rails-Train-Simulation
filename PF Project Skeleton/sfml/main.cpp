@@ -19,11 +19,11 @@ using namespace std;
 // Clears the console and prints the current state of the grid.
 // ----------------------------------------------------------------------------
 void printTerminalGrid() {
-    // 1. Clear the screen to animate the frame
+    //1. Clear the screen to animate the frame
     #ifdef _WIN32
         system("cls");
     #else
-        system("clear");
+       system("clear");
     #endif
 
     // 2. Print Header
@@ -90,13 +90,32 @@ int main(int argc, char* argv[]) {
     cout << "Level Loaded Successfully: " << argv[1] << endl;
     cout << "Press ENTER to start the simulation..." << endl;
     cin.get(); // Wait for user input
+// DEBUG: Check initial state
+cout << "\n=== DEBUG: INITIAL STATE ===\n";
+cout << "numTrains: " << numTrains << endl;
+cout << "numSpawn: " << numSpawn << endl;
+cout << "numDestinations: " << numDestinations << endl;
+cout << "currentTick: " << currentTick << endl;
 
+for (int i = 0; i < numTrains; i++) {
+    cout << "Train " << i << ": row=" << trainRow[i] << " col=" << trainColumn[i] << endl;
+}
+
+cout << "isSimulationComplete() returns: " << (isSimulationComplete() ? "TRUE" : "FALSE") << endl;
+cout << "==============================\n\n";
     // 6. Main Application Loop
     while (!isSimulationComplete()) {
         
         // A. Run one tick of simulation logic
         simulateOneTick();
-
+        // DEBUG: Print train positions
+    cout << "DEBUG Tick " << currentTick << " Train Positions:\n";
+    for (int i = 0; i < numTrains; i++) {
+        if (trainRow[i] != -1) {
+            cout << "  Train " << i << ": (" << trainRow[i] << "," << trainColumn[i] 
+                 << ") dir=" << trainDirection[i] << " wait=" << trainWait[i] << "\n";
+        }
+    }
         // B. Log data to CSV files
         logTrainTrace();
         logSwitchState();
@@ -107,7 +126,7 @@ int main(int argc, char* argv[]) {
 
         // D. Delay for visual effect (0.1s = 100000 microseconds)
         // Adjust this value to speed up or slow down the terminal animation
-        usleep(100000); 
+        usleep(500000); 
 
         // Safety break to prevent infinite loops if logic fails
         if (currentTick > 5000) {
