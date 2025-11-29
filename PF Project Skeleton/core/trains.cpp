@@ -168,10 +168,10 @@ int getNextDirection(int trainID,int row,int col) {
             int dir=candidates[k];
             int newRow=trainRow[trainID]+row_change[dir];
             int newColumn=trainColumn[trainID]+column_change[dir];
-            if(!isInBounds(newRowr,nc)){ //Check if the place where the train tries to go is valid
+            if(!isInBounds(newRow,newColumn)){ //Check if the place where the train tries to go is valid
                 continue;
             }
-            char newTile=grid[nr][nc];
+            char newTile=grid[newRow][newColumn];
             //Check if valid track tile
             bool valid=(isTrackTile(newRow,newColumn)||isSwitchTile(newRow,newColumn)||newTile==spawn||newTile==destination||newTile=='=');
             if(valid){
