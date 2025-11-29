@@ -18,8 +18,8 @@ using namespace std;
 // ----------------------------------------------------------------------------
 // Clears the console and prints the current state of the grid.
 // ----------------------------------------------------------------------------
-void printTerminalGrid(){
-    //Clear the screen to animate the frame
+void printTerminalGrid() {
+    // Clear screen
     #ifdef _WIN32
         system("cls");
     #else
@@ -30,33 +30,27 @@ void printTerminalGrid(){
     cout << "Trains Reached: " << trainsReached << " | Crashed: " << crashed_trains << endl;
     cout << "------------------------------------------------------------" << endl;
 
-    //Print grid
-    for(int r=0;r<number_column;r++){
-        for(int c=0;c<number_rows;c++){
-            bool hasTrain=false;
+    // FIX: Rows limit is number_rows, Column limit is number_column
+    for(int r=0; r<number_rows; r++) {     // <--- FIXED
+        for(int c=0; c<number_column; c++) { // <--- FIXED
+            bool hasTrain = false;
 
-            //Check if active train present at this position
-            for(int i=0;i<numOf_trains;i++) {
-                //Only draw valid trains
-                if(trainRow[i]!=-1&&trainRow[i]==r&&trainColumn[i]==c){
-                    //Print the last digit of the train ID to distinguish them
-                    cout<<(i%10);
-                    hasTrain=true;
+            for(int i=0; i<numOf_trains; i++) {
+                if(trainRow[i] != -1 && trainRow[i] == r && trainColumn[i] == c) {
+                    cout << (i % 10);
+                    hasTrain = true;
                     break;
                 }
             }
 
-            //If no train print the map tile
-            if(!hasTrain){
-                //Print switch
-                cout<<grid[r][c];
+            if(!hasTrain) {
+                cout << grid[r][c];
             }
         }
-        cout<<endl;
+        cout << endl;
     }
-    cout<<"------------------------------------------------------------"<<endl;
+    cout << "------------------------------------------------------------" << endl;
 }
-
 // ----------------------------------------------------------------------------
 // MAIN ENTRY POINT
 // ----------------------------------------------------------------------------

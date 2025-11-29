@@ -11,7 +11,7 @@
 // Returns true if x,y are within bounds.
 // ----------------------------------------------------------------------------
 bool isInBounds(int i,int j) {
-    return(i>=0 && i<number_column && j>=0 && j<number_rows);
+    return(i>=0 && i<number_rows && j>=0 && j<number_column);
 }
 // ----------------------------------------------------------------------------
 // Check if a tile is a track tile.
@@ -19,7 +19,8 @@ bool isInBounds(int i,int j) {
 // Returns true if the tile can be traversed by trains.
 // ----------------------------------------------------------------------------
 bool isTrackTile(int i,int j) {
-    if(!isInBounds(i,j)) return 0;
+    if(!isInBounds(i,j)) 
+    return 0;
     char tile=grid[i][j];
     return(tile==horizontal_track ||tile==vertical_track||tile==right_curve||
     tile==left_curve||tile==crossing||tile==spawn||tile==destination||tile=='=');
