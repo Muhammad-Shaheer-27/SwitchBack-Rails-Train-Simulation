@@ -11,10 +11,10 @@
 // GRID CONSTANTS
 // ----------------------------------------------------------------------------
 //Grid Size
-const int max_Rows=70;
-const int max_Columns=70;
+const int maximum_rows=70;
+const int maximum_Columns=70;
 //Tiles
-const char empty_space='.';
+const char space=' ';
 const char horizontal_track='-';
 const char vertical_track='|';
 const char right_curve='/';
@@ -50,10 +50,10 @@ const int train_speed_delay=1;
 // ----------------------------------------------------------------------------
 // SWITCH CONSTANTS
 // ----------------------------------------------------------------------------
-const int max_switches=26;
+const int maximum_switches=26;
 const int max_switches_state=2;
-const char switch_start='A';
-const char switch_end='Z';
+const char start_switch='A';
+const char end_switch='Z';
 //Switch Directions
 const int K_up=0;
 const int K_right=1;
@@ -85,15 +85,15 @@ const int max_signals=3;
 // ----------------------------------------------------------------------------
 // GLOBAL STATE: GRID
 // ----------------------------------------------------------------------------
-extern int numRows;
-extern int numColumns;
-extern char grid[max_Rows][max_Columns];
-extern int safetyDelay[max_Rows][max_Columns];    //Remaining ticks on a =tile 
+extern int number_column;
+extern int number_rows;
+extern char grid[maximum_rows][maximum_Columns];
+extern int safetyDelay[maximum_rows][maximum_Columns];    //Remaining ticks on a =tile 
 
 // ----------------------------------------------------------------------------
 // GLOBAL STATE: TRAINS
 // ----------------------------------------------------------------------------
-extern int numTrains;
+extern int numOf_trains;
 extern int trainRow[max_trains];       //Row index of each train
 extern int trainColumn[max_trains];    //Column index of each train
 extern int trainColor[max_trains];
@@ -104,23 +104,23 @@ extern int trainWait[max_trains]; //Ticks left to wait
 // GLOBAL STATE: SWITCHES (A-Z mapped to 0-25)
 // ----------------------------------------------------------------------------
 extern int numSwitches;
-extern int switchSignal[max_switches];
-extern char switchLetter[max_switches];
-extern int switchState[max_switches];
-extern int switchMode[max_switches];
-extern int switchCounter[max_switches][4];//Counter for perdirection for each switch(0,1,2,3)
-extern int switchK[max_switches][4];//K value for each switch perdirection(entries left before flip)
-extern int switchFlipped[max_switches];//Check if switch will flip
-extern int switchRouting[max_switches][4][2];
+extern int switchSignal[maximum_switches];
+extern char switchLetter[maximum_switches];
+extern int switchState[maximum_switches];
+extern int switchMode[maximum_switches];
+extern int switchCounter[maximum_switches][4];//Counter for perdirection for each switch(0,1,2,3)
+extern int switchK[maximum_switches][4];//K value for each switch perdirection(entries left before flip)
+extern int switchFlipped[maximum_switches];//Check if switch will flip
+extern int switchRouting[maximum_switches][4][2];
 
 
 // ----------------------------------------------------------------------------
 // GLOBAL STATE: SPAWN POINTS
 // ----------------------------------------------------------------------------
-extern int numSpawn;
+extern int num_spawn;
 //Spawn Position
-extern int spawnRow[max_trains];
-extern int spawnColumn[max_trains];
+extern int spawnn_Row[max_trains];
+extern int spawnn_Column[max_trains];
 //Tick for Spawn of Train
 extern int spawnTick[max_trains];
 //Train index on spawn point
@@ -131,7 +131,7 @@ extern int spawnColor[max_trains];
 // ----------------------------------------------------------------------------
 // GLOBAL STATE: DESTINATION POINTS
 // ----------------------------------------------------------------------------
-extern int numDestinations;
+extern int numDest;
 //Destination Position
 extern int destinationRow[max_trains];
 extern int destinationColumn[max_trains];
@@ -144,23 +144,23 @@ extern int destinationTrainID[max_trains];
 extern int currentTick;
 extern int totalTicks;
 extern int levelSeed;
-extern int weatherType;
+extern int weather_type;
 extern int simulationRunning;
 
 // ----------------------------------------------------------------------------
 // GLOBAL STATE: METRICS
 // ----------------------------------------------------------------------------
 extern int trainsReached;
-extern int trainsCrashed;
+extern int crashed_trains;
 extern int totalWaitTicks;
-extern int totalEnergy;
+extern int T_energy;
 extern int switchFlips;
 extern int signalViolations;
 
 // ----------------------------------------------------------------------------
 // GLOBAL STATE: EMERGENCY HALT
 // ----------------------------------------------------------------------------
-extern int emergencyHalt[max_Rows][max_Columns];  //Ticks remaining for halt
+extern int emergencyHalt[maximum_rows][maximum_Columns];  //Ticks remaining for halt
 extern int emergencyHaltActive;
 
 // ----------------------------------------------------------------------------

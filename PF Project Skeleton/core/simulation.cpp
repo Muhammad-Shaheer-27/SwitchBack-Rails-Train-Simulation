@@ -47,7 +47,7 @@ bool isSimulationComplete() {
 
     // FIX 2: Only finish if (Reached + Crashed) equals TOTAL scheduled trains (numSpawn)
     // If numSpawn is 0 (empty level), we finish immediately.
-    if (numSpawn > 0 && (trainsReached + trainsCrashed) >= numSpawn) {
+    if (num_spawn > 0 && (trainsReached + crashed_trains) >= num_spawn) {
         return true;
     }
 

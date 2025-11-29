@@ -28,16 +28,16 @@ void printTerminalGrid() {
 
     // 2. Print Header
     cout << "Tick: " << currentTick << endl;
-    cout << "Trains Reached: " << trainsReached << " | Crashed: " << trainsCrashed << endl;
+    cout << "Trains Reached: " << trainsReached << " | Crashed: " << crashed_trains << endl;
     cout << "------------------------------------------------------------" << endl;
 
     // 3. Print Grid
-    for (int r = 0; r < numRows; r++) {
-        for (int c = 0; c < numColumns; c++) {
+    for (int r = 0; r < number_column; r++) {
+        for (int c = 0; c < number_rows; c++) {
             bool hasTrain = false;
 
             // Check if active train is on this tile
-            for (int i = 0; i < numTrains; i++) {
+            for (int i = 0; i < numOf_trains; i++) {
                 // Only draw valid trains
                 if (trainRow[i] != -1 && trainRow[i] == r && trainColumn[i] == c) {
                     // Print the last digit of the train ID to distinguish them
@@ -90,7 +90,7 @@ int main(int argc, char* argv[]) {
     cout << "Level Loaded Successfully: " << argv[1] << endl;
     cout << "Press ENTER to start the simulation..." << endl;
     cin.get(); // Wait for user input
-for (int i = 0; i < numTrains; i++) {
+for (int i = 0; i < numOf_trains; i++) {
     cout << "Train " << i << ": row=" << trainRow[i] << " col=" << trainColumn[i] << endl;
 }
 

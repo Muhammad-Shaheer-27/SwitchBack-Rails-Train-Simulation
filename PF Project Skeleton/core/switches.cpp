@@ -17,7 +17,7 @@ using namespace std;
 // ----------------------------------------------------------------------------
 void updateSwitchCounters() {
     // Loop through all active trains
-    for (int i = 0; i < numTrains; i++) {
+    for (int i = 0; i < numOf_trains; i++) {
         // Skip if train is not on the map
         if (trainRow[i] == -1) continue;
 
