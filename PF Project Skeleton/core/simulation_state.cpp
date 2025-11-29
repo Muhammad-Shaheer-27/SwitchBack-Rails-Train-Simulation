@@ -123,8 +123,8 @@ void initializeSimulationState(){
         spawnn_Column[i]=-1;
         spawnTick[i]=0;
         spawnTrainID[i]=-1;
-        spawnDirection[i] = train_right; //Default direction for train
-        spawnColor[i] = 0; 
+        spawnDirection[i]=train_right; //Default direction for train
+        spawnColor[i]=0; 
         destinationRow[i]=-1;
         destinationColumn[i]=-1;
         destinationTrainID[i]=-1;

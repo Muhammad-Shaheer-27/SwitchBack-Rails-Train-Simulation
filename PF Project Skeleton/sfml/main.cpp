@@ -4,7 +4,7 @@
 #include "../core/io.h"
 #include "../core/grid.h" 
 #include <iostream>
-#include <cstdlib>  // For system("cls") or system("clear")
+#include <cstdlib>  // For tick update on terminal
 #include <unistd.h> // For usleep()
 
 using namespace std;
@@ -18,85 +18,82 @@ using namespace std;
 // ----------------------------------------------------------------------------
 // Clears the console and prints the current state of the grid.
 // ----------------------------------------------------------------------------
-void printTerminalGrid() {
-    //1. Clear the screen to animate the frame
+void printTerminalGrid(){
+    //Clear the screen to animate the frame
     #ifdef _WIN32
         system("cls");
     #else
        system("clear");
     #endif
 
-    // 2. Print Header
     cout << "Tick: " << currentTick << endl;
     cout << "Trains Reached: " << trainsReached << " | Crashed: " << crashed_trains << endl;
     cout << "------------------------------------------------------------" << endl;
 
-    // 3. Print Grid
-    for (int r = 0; r < number_column; r++) {
-        for (int c = 0; c < number_rows; c++) {
-            bool hasTrain = false;
+    //Print grid
+    for(int r=0;r<number_column;r++){
+        for(int c=0;c<number_rows;c++){
+            bool hasTrain=false;
 
-            // Check if active train is on this tile
-            for (int i = 0; i < numOf_trains; i++) {
-                // Only draw valid trains
-                if (trainRow[i] != -1 && trainRow[i] == r && trainColumn[i] == c) {
-                    // Print the last digit of the train ID to distinguish them
-                    cout << (i % 10);
-                    hasTrain = true;
+            //Check if active train present at this position
+            for(int i=0;i<numOf_trains;i++) {
+                //Only draw valid trains
+                if(trainRow[i]!=-1&&trainRow[i]==r&&trainColumn[i]==c){
+                    //Print the last digit of the train ID to distinguish them
+                    cout<<(i%10);
+                    hasTrain=true;
                     break;
                 }
             }
 
-            // If no train, print the map tile
-            if (!hasTrain) {
-                // If it's a switch, print its current direction state if needed, 
-                // but for now, we just print the char from the grid.
-                cout << grid[r][c];
+            //If no train print the map tile
+            if(!hasTrain){
+                //Print switch
+                cout<<grid[r][c];
             }
         }
-        cout << endl; // Newline at end of row
+        cout<<endl;
     }
-    cout << "------------------------------------------------------------" << endl;
+    cout<<"------------------------------------------------------------"<<endl;
 }
 
 // ----------------------------------------------------------------------------
 // MAIN ENTRY POINT
 // ----------------------------------------------------------------------------
-int main(int argc, char* argv[]) {
-    // 1. Check Command Line Arguments
-    if (argc < 2) {
-        cout << "Usage: ./switchback_console <level_file>" << endl;
-        // Fallback for testing if no argument provided (Optional)
-        cout << "No file provided. Exiting." << endl;
+int main(int argc, char* argv[]){
+    //Check argument
+    if(argc<2){
+        cout<<"Usage: ./switchback_console <level_file>"<<endl;
+        //Fall back to default level file if none provided
+        cout<<"No file provided. Exiting."<<endl;
         return 1;
     }
 
     // 2. Initialize Simulation
     initializeSimulation();
 
-    // 3. Load Level File
-    // We pass argv[1] which is the path to the level file provided in the terminal
+    //Load level file
     if (!loadLevelFile(argv[1])) {
-        cout << "Error: Failed to load level file: " << argv[1] << endl;
+        cout<<"Error: Failed to load level file: "<<argv[1]<<endl;
         return 1;
     }
 
-    // 4. Initialize Logs
+    //Add log files
     initializeLogFiles();
 
-    // 5. Print Initial State (So you can see the map before starting)
+    //Call function to print grid
     printTerminalGrid();
 
-    cout << "Level Loaded Successfully: " << argv[1] << endl;
-    cout << "Press ENTER to start the simulation..." << endl;
-    cin.get(); // Wait for user input
-for (int i = 0; i < numOf_trains; i++) {
-    cout << "Train " << i << ": row=" << trainRow[i] << " col=" << trainColumn[i] << endl;
+    cout<<"Level Loaded Successfully: "<< argv[1]<<endl;
+    cout<<"Press ENTER to start the simulation..."<<endl;
+    cin.get(); //Wait for user input
+for(int i=0;i<numOf_trains;i++) {
+    cout<<"Train "<<i<<": row="<<trainRow[i]<<" col="<<trainColumn[i]<<endl;
 }
 
-cout << "isSimulationComplete() returns: " << (isSimulationComplete() ? "TRUE" : "FALSE") << endl;
-cout << "==============================\n\n";
-    // 6. Main Application Loop
+cout<<"isSimulationComplete() returns: " <<(isSimulationComplete()?"TRUE":"FALSE")<<endl;
+cout<<"==============================\n\n";
+    //Train simulation on terminal
     while (!isSimulationComplete()) {
         
         // A. Run one tick of simulation logic
@@ -106,24 +103,23 @@ cout << "==============================\n\n";
         logSwitchState();
         logSignalState();
 
-        // C. Render to Terminal
+        //Print grid to terminal
         printTerminalGrid();
 
-        // D. Delay for visual effect (0.1s = 100000 microseconds)
-        // Adjust this value to speed up or slow down the terminal animation
+        //Add wait time before each tick
         usleep(500000); 
 
-        // Safety break to prevent infinite loops if logic fails
-        if (currentTick > 5000) {
+        //Prevent infinite loop
+        if (currentTick>1000) {
             cout << "Simulation timed out (Max Ticks Reached)." << endl;
             break;
         }
     }
 
-    // 7. Cleanup & Final Stats
+    //Write metrics
     writeMetrics();
-    cout << "Simulation Finished!" << endl;
-    cout << "Final metrics written to metrics.txt" << endl;
+    cout<<"Simulation Finished!"<<endl;
+    cout<<"Final metrics written to metrics.txt"<<endl;
 
     return 0;
 }

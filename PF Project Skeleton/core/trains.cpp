@@ -21,7 +21,7 @@ using namespace std;
 void spawnTrainsForTick() {
     for(int i=0;i<num_spawn;i++){    //Checking all spawn points
         if(spawnTick[i]==currentTick && spawnTrainID[i]==-1){   //Check if train scheduled for spawn
-             // Find a free train slot
+             //Find a free train slot
             int freeTrain=-1;
             for(int j=0;j<max_trains;j++) {
                 if(trainRow[j]==-1){
@@ -48,12 +48,11 @@ void spawnTrainsForTick() {
             trainColor[freeTrain]=spawnColor[i];
             trainWait[freeTrain]=0;
 
-            spawnTrainID[i] = freeTrain;  // Mark train as spawned
-            // If this spawn had a matching destination entry (destinationTrainID set to spawn index),
-            // update destinationTrainID to point to the actual train index we just allocated.
-            for (int d = 0; d < numDest; d++) {
-                if (destinationTrainID[d] == i) {
-                    destinationTrainID[d] = freeTrain;
+            spawnTrainID[i] = freeTrain;  //Mark train as spawned
+            //Point train towards destination
+            for (int d=0;d<numDest;d++) {
+                if(destinationTrainID[d]==i) {
+                    destinationTrainID[d]=freeTrain;
                 }
             }
             numOf_trains++;
@@ -70,17 +69,17 @@ bool determineNextPosition(int trainID,int &nextRow,int &nextColumn) {
     nextRow=trainRow[trainID]+row_change[trainDirection[trainID]];  //Calculate next row 
     nextColumn=trainColumn[trainID]+column_change[trainDirection[trainID]]; //Calculate next column
     
-    if(!isInBounds(nextRow, nextColumn)) {
+    if(!isInBounds(nextRow, nextColumn)){
         return false;
     }
     
-    char nextTile = grid[nextRow][nextColumn];
+    char nextTile=grid[nextRow][nextColumn];
     
-    if (!(isTrackTile(nextRow, nextColumn) || nextTile == spawn || nextTile == destination || nextTile == '=' || isSwitchTile(nextRow, nextColumn)))  {
+    if (!(isTrackTile(nextRow,nextColumn)||nextTile==spawn||nextTile==destination||nextTile=='='||isSwitchTile(nextRow,nextColumn))){
         return false;
     }
     
-    if(nextRow < 0 || nextRow >= number_column || nextColumn < 0 || nextColumn >= number_rows) {
+    if(nextRow<0||nextRow>=number_column||nextColumn<0||nextColumn>=number_rows){
         return false;
     }
     return true;
@@ -92,7 +91,7 @@ bool determineNextPosition(int trainID,int &nextRow,int &nextColumn) {
 // Return new direction after entering the tile.
 // ----------------------------------------------------------------------------
 int getNextDirection(int trainID,int row,int col) {
-    char track = grid[row][col];   //Check the current tile a train is present on
+    char track=grid[row][col];   //Check the current tile a train is present on
     switch(track){
     case spawn:
     case destination:
@@ -137,8 +136,8 @@ int getNextDirection(int trainID,int row,int col) {
                 //Reset the direction counter to zero after flip
                 switchCounter[switchID][trainDirection[trainID]]=0;
             }
-        } else {
-            // Increment global counter (index 0)
+        } else{
+            //Increment global counter
             switchCounter[switchID][0]++;
             if(switchCounter[switchID][0]>=switchK[switchID][0]){
                 switchFlipped[switchID]=!switchFlipped[switchID];
@@ -146,36 +145,37 @@ int getNextDirection(int trainID,int row,int col) {
             }
         }
 
-        // Choose outgoing direction based on switch flip state and actual neighbouring track availability.
-        // Preference order: straight, then (left/right) depending on flipped state, then back.
-        int straight = trainDirection[trainID];
-        int right = (trainDirection[trainID] + 1) % 4;
-        int left = (trainDirection[trainID] + 3) % 4;
-        int back = (trainDirection[trainID] + 2) % 4;
+        //Choose next direction (straight,left/right,back) based on switch state
+        //Calculate all possible directions
+        int straight=trainDirection[trainID];
+        int right=(trainDirection[trainID]+1)%4;
+        int left=(trainDirection[trainID]+3)%4;
+        int back=(trainDirection[trainID]+2)%4;
 
         int candidates[4];
-        candidates[0] = straight;
-        if(switchFlipped[switchID]){ // flipped: prefer right turn
-            candidates[1] = right;
-            candidates[2] = left;
-        } else { // not flipped: prefer left turn
-            candidates[1] = left;
-            candidates[2] = right;
+        candidates[0]=straight;
+        if(switchFlipped[switchID]){ //if flipped turn right
+            candidates[1]=right;
+            candidates[2]=left;
+        } else { //else turn left
+            candidates[1]=left;
+            candidates[2]=right;
         }
-        candidates[3] = back;
+        candidates[3]=back;
 
-        // Find first candidate that leads to a valid track-like tile
+        //Find the candidate which leads to a valid track
         for(int k=0;k<4;k++){
-            int dir = candidates[k];
-            int nr = trainRow[trainID] + row_change[dir];
-            int nc = trainColumn[trainID] + column_change[dir];
-            if(!isInBounds(nr,nc)){
+            int dir=candidates[k];
+            int newRow=trainRow[trainID]+row_change[dir];
+            int newColumn=trainColumn[trainID]+column_change[dir];
+            if(!isInBounds(newRowr,nc)){ //Check if the place where the train tries to go is valid
                 continue;
             }
-            char nt = grid[nr][nc];
-            bool valid = (isTrackTile(nr,nc) || isSwitchTile(nr,nc) || nt==spawn || nt==destination || nt=='=');
+            char newTile=grid[nr][nc];
+            //Check if valid track tile
+            bool valid=(isTrackTile(newRow,newColumn)||isSwitchTile(newRow,newColumn)||newTile==spawn||newTile==destination||newTile=='=');
             if(valid){
-                nextDir = dir;
+                nextDir=dir;
                 break;
             }
         }
@@ -195,10 +195,10 @@ int getSmartDirectionAtCrossing(int trainID) {
     int destColumn=destinationColumn[trainID];
     int bestDir=trainDirection[trainID];    //Best path the train know to reach destination
     int minDistance=abs(row-destRow)+abs(column-destColumn);   //Manhattan distance
-    for(int i=0;i<4;i++){
+    for(int i=0;i<4;i++){   //Check all 4 possible directions
         int nrow= row+row_change[i];
         int ncolumn=column+column_change[i];
-        // Check bounds
+        //Check if position is valid
         if(nrow<0||nrow>=number_column||ncolumn<0||ncolumn>=number_rows) continue;
         //Check if tile is a rail
         char tile=grid[nrow][ncolumn];
@@ -249,7 +249,7 @@ void moveAllTrains() {
             nextDir[i]=trainDirection[i];
             continue;
         }
-        //Halt train
+        //Halt train if on safety tile
         if(trainWait[i]>0){
         nextRow[i]=trainRow[i];     //No movement
         nextCol[i]=trainColumn[i];
@@ -270,7 +270,7 @@ void moveAllTrains() {
     }
 
     
-    //Save previous positions
+    //Save previous positions for safety tile detection
     for(int i=0;i<numOf_trains;i++){
         oldRow[i] = trainRow[i];
         oldCol[i] = trainColumn[i];
@@ -302,12 +302,13 @@ void moveAllTrains() {
 // Resolve same-tile, swap, and crossing conflicts.
 // ----------------------------------------------------------------------------
 void detectCollisions(int nextRow[],int nextCol[],int nextDir[]) {
-    for(int i=0;i<numOf_trains;i++){
-        if(trainRow[i]==-1) continue;
+    for(int i=0;i<numOf_trains;i++){    //Check all trains
+        if(trainRow[i]==-1) continue;   //Skip inactive trains
         for(int j=i+1;j<numOf_trains;j++){
             if(trainRow[j]==-1) continue;
-            if(nextRow[i]==nextRow[j] && nextCol[i]==nextCol[j]){
+            if(nextRow[i]==nextRow[j] && nextCol[i]==nextCol[j]){   //If trains try to move to same tile
             char tile=grid[nextRow[i]][nextCol[i]];
+            //Determine distance to destination for both trains
             int dist_i=abs(nextRow[i]-destinationRow[i])+abs(nextCol[i]-destinationColumn[i]);
             int dist_j=abs(nextRow[j]-destinationRow[j])+abs(nextCol[j]-destinationColumn[j]);
             if(tile==crossing) {
@@ -319,10 +320,12 @@ void detectCollisions(int nextRow[],int nextCol[],int nextDir[]) {
                 crashed_trains+=2;
             } 
             else if(dist_i>dist_j){
+                //Farther train moves closer waits
                 nextRow[j]=trainRow[j];
                 nextCol[j]=trainColumn[j];
             } 
             else{
+                //Farther train moves closer waits
                 nextRow[j]=trainRow[j];
                 nextCol[j]=trainColumn[j];
             }
@@ -336,12 +339,12 @@ void detectCollisions(int nextRow[],int nextCol[],int nextDir[]) {
                 nextCol[j]=trainColumn[j];
                 crashed_trains+=2;
             } else if(dist_i>dist_j) {
-                //i is farther then move i stop j
+                //Farther train moves closer waits
                 nextRow[j]=trainRow[j];
                 nextCol[j]=trainColumn[j];
             } 
             else {
-                //j is farther then move j stop i
+                //Farther train moves closer waits
                 nextRow[j]=trainRow[j];
                 nextCol[j]=trainColumn[j];
                 }
@@ -361,12 +364,12 @@ void detectCollisions(int nextRow[],int nextCol[],int nextDir[]) {
                         crashed_trains+=2;
                     }
                     else if(dist_i>dist_j){
-                        //i is farther then i moves j waits
+                        //Farther train moves closer waits
                         nextRow[j]=trainRow[j];
                         nextCol[j]=trainColumn[j];
                     }
                     else{
-                        //j is farther then j moves i waits
+                        //Farther train moves closer waits
                         nextRow[i]=trainRow[i];
                         nextCol[i]=trainColumn[i];
                     }
@@ -386,7 +389,7 @@ void checkArrivals() {
         for(int j=0;j<numDest;j++){ 
             //Train removed when it reached destination
             if(trainRow[i]==destinationRow[j] && trainColumn[i]==destinationColumn[j]){
-                trainsReached++;    //If reached then increment
+                trainsReached++;    //If reached then increment counter
                 trainRow[i]=-1;
                 trainColumn[i]=-1;  //Mark that train as inactive
                 //Remove destination index for train
@@ -404,8 +407,8 @@ void checkArrivals() {
 // ----------------------------------------------------------------------------
 void applyEmergencyHalt() {
     for(int i=0;i<numOf_trains;i++){   //Check all trains
-        if (trainRow[i]!=-1 && emergencyHalt[trainRow[i]][trainColumn[i]]>0){   //Check if tile has emergency halt
-        if (trainWait[i]<emergencyHalt[trainRow[i]][trainColumn[i]]){   //Apply timer if halt is applied
+        if(trainRow[i]!=-1 && emergencyHalt[trainRow[i]][trainColumn[i]]>0){   //Check if tile has emergency halt
+        if(trainWait[i]<emergencyHalt[trainRow[i]][trainColumn[i]]){   //Apply timer if halt is applied
             trainWait[i]=emergencyHalt[trainRow[i]][trainColumn[i]];
             }
         }

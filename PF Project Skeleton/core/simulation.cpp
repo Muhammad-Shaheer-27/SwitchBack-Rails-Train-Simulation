@@ -42,17 +42,14 @@ void simulateOneTick() {
 // FIXED: CHECK IF SIMULATION IS COMPLETE
 // ----------------------------------------------------------------------------
 bool isSimulationComplete() {
-    // FIX 1: Never finish at the very start (Tick 0)
-    if (currentTick == 0) return false;
-
-    // FIX 2: Only finish if (Reached + Crashed) equals TOTAL scheduled trains (numSpawn)
-    // If numSpawn is 0 (empty level), we finish immediately.
-    if (num_spawn > 0 && (trainsReached + crashed_trains) >= num_spawn) {
+    //Do not end at tick 0
+    if(currentTick==0)return false;
+    //End if trains reached+crashed= total trains spawned
+    if(num_spawn>0&&(trainsReached+crashed_trains)>=num_spawn){
         return true;
     }
-
-    // Safety: Stop after 5000 ticks to prevent infinite loops
-    if (currentTick > 5000) return true;
+    //Prevent infinite simulation
+    if(currentTick>1000)return true;
 
     return false;
 }
