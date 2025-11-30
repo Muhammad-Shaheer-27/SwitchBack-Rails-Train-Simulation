@@ -452,6 +452,9 @@ void logSwitchState()
     }
 }
 
+// ============================================================================
+// FIXED: Signal State Logging with Actual Colors
+// ============================================================================
 void logSignalState()
 {
     ofstream file("signals.csv", ios::app);
@@ -459,9 +462,20 @@ void logSignalState()
     {
         for (int i = 0; i < numSwitches; i++)
         {
+            // Convert signal number to color string
+            string color;
+            if (switchSignal[i] == signal_green)
+                color = "GREEN";
+            else if (switchSignal[i] == signal_yellow)
+                color = "YELLOW";
+            else if (switchSignal[i] == sigal_red)
+                color = "RED";
+            else
+                color = "GREEN";  // Default fallback
+            
             file << currentTick << ","
                  << switchLetter[i] << ","
-                 << switchSignal[i] << endl;
+                 << color << endl;
         }
         file.close();
     }
@@ -479,6 +493,7 @@ void writeMetrics()
         file << "Trains Crashed: " << crashed_trains << endl;
         file << "Total Waiting Time: " << totalWaitTicks << endl;
         file << "Total Energy Used: " << T_energy << endl;
+        file << "Switch Flips: " << switchFlips << endl;
         file.close();
     }
 }

@@ -7,35 +7,28 @@
 using namespace std;
 
 // ============================================================================
-// SWITCHES.CPP - Switch management
+// SWITCHES.CPP - Switch management + SIGNAL LIGHTS
 // ============================================================================
 
 // ----------------------------------------------------------------------------
 // UPDATE SWITCH COUNTERS
 // ----------------------------------------------------------------------------
-// Increment counters for trains entering switches.
-// ----------------------------------------------------------------------------
 void updateSwitchCounters() {
-    // Loop through all active trains
     for (int i = 0; i < numOf_trains; i++) {
-        // Skip if train is not on the map
         if (trainRow[i] == -1) continue;
 
-        // Get the tile the train is currently standing on
         char tile = grid[trainRow[i]][trainColumn[i]];
 
-        // Check if the tile is a switch (A-Z)
         if (tile >= 'A' && tile <= 'Z') {
-            int swID = tile - 'A'; // Convert 'A'->0, 'B'->1, etc.
+            int swID = tile - 'A';
             int dir = trainDirection[i];
 
-            // Update counter based on the switch mode
             if (switchMode[swID] == GLOBAL) {
-                // Global mode: increment the 0-index counter
                 switchCounter[swID][0]++;
             } else {
-                // Per-Direction mode: increment the counter for this specific direction
-                switchCounter[swID][dir]++;
+                if (dir >= 0 && dir < 4) {
+                    switchCounter[swID][dir]++;
+                }
             }
         }
     }
@@ -44,24 +37,21 @@ void updateSwitchCounters() {
 // ----------------------------------------------------------------------------
 // QUEUE SWITCH FLIPS
 // ----------------------------------------------------------------------------
-// Queue flips when counters hit K.
-// ----------------------------------------------------------------------------
 void queueSwitchFlips() {
     for (int i = 0; i < numSwitches; i++) {
-        // Check all 4 directions (Up, Right, Down, Left)
-        for (int dir = 0; dir < 4; dir++) {
-            
-            // If Global mode, we only care about index 0
-            if (switchMode[i] == GLOBAL && dir > 0) continue;
-
-            // If counter has reached the K-value limit
-            if (switchCounter[i][dir] >= switchK[i][dir]) {
-                
-                // Mark the switch to flip later (Deferred Flip)
+        if (switchMode[i] == GLOBAL) {
+            if (switchCounter[i][0] >= switchK[i][0]) {
                 switchFlipped[i] = 1;
-                
-                // Reset the counter immediately so it can start counting again
-                switchCounter[i][dir] = 0;
+                switchCounter[i][0] = 0;
+                switchFlips++;
+            }
+        } else {
+            for (int dir = 0; dir < 4; dir++) {
+                if (switchCounter[i][dir] >= switchK[i][dir]) {
+                    switchFlipped[i] = 1;
+                    switchCounter[i][dir] = 0;
+                    switchFlips++;
+                }
             }
         }
     }
@@ -70,17 +60,10 @@ void queueSwitchFlips() {
 // ----------------------------------------------------------------------------
 // APPLY DEFERRED FLIPS
 // ----------------------------------------------------------------------------
-// Apply queued flips after movement.
-// ----------------------------------------------------------------------------
 void applyDeferredFlips() {
     for (int i = 0; i < numSwitches; i++) {
-        // If the switch was marked to flip in the queue step
         if (switchFlipped[i] == 1) {
-            
-            // Toggle state: 0 becomes 1, 1 becomes 0
             switchState[i] = !switchState[i];
-            
-            // Reset the flip flag
             switchFlipped[i] = 0;
         }
     }
@@ -89,23 +72,86 @@ void applyDeferredFlips() {
 // ----------------------------------------------------------------------------
 // UPDATE SIGNAL LIGHTS
 // ----------------------------------------------------------------------------
-// Update signal colors for switches.
+// For each train that is currently ON a switch tile, we compute the signal
+// for that switch ID (A..Z):
+//
+// Green (0): next tile along the train's current direction is free & valid.
+// Yellow (1): next tile is free, but there is a train two tiles ahead.
+// Red (2): next tile is blocked/out-of-bounds/not track OR next tile is occupied.
 // ----------------------------------------------------------------------------
 void updateSignalLights() {
-    for (int i = 0; i < numSwitches; i++) {
-        // Basic Logic: Set all signals to GREEN (0) for now.
-        // (Advanced logic requires checking track occupancy ahead)
-        switchSignal[i] = 0; 
+    // Default all signals to GREEN for all possible letters A..Z
+    for (int i = 0; i < maximum_switches; i++) {
+        switchSignal[i] = signal_green;
+    }
+
+    // For each train, if it is standing on a switch, compute that switch's signal
+    for (int t = 0; t < numOf_trains; t++) {
+        if (trainRow[t] == -1) continue;
+
+        int r = trainRow[t];
+        int c = trainColumn[t];
+
+        if (!isSwitchTile(r, c)) continue;
+
+        int swID = getSwitchIndex(r, c);
+        if (swID < 0 || swID >= maximum_switches) continue;
+
+        int dir = trainDirection[t];
+
+        bool red = false;
+        bool yellow = false;
+
+        // 1 tile ahead in current direction
+        int r1 = r + row_change[dir];
+        int c1 = c + column_change[dir];
+
+        // If out-of-bounds or not traversable, it's RED
+        if (!isInBounds(r1, c1) ||
+            !(isTrackTile(r1, c1) || isSwitchTile(r1, c1) ||
+              grid[r1][c1] == spawn || grid[r1][c1] == destination || grid[r1][c1] == '=')) {
+            red = true;
+        } else {
+            // If another train is currently on the next tile, it's RED
+            for (int k = 0; k < numOf_trains; k++) {
+                if (k == t) continue;
+                if (trainRow[k] == r1 && trainColumn[k] == c1) {
+                    red = true;
+                    break;
+                }
+            }
+
+            // If not RED, check two tiles ahead for YELLOW
+            if (!red) {
+                int r2 = r1 + row_change[dir];
+                int c2 = c1 + column_change[dir];
+
+                if (isInBounds(r2, c2)) {
+                    for (int k = 0; k < numOf_trains; k++) {
+                        if (trainRow[k] == r2 && trainColumn[k] == c2) {
+                            yellow = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        int newStatus = signal_green;
+        if (red) newStatus = sigal_red;         // NOTE: constant name 'sigal_red' in header
+        else if (yellow) newStatus = signal_yellow;
+
+        // Use highest severity per switch: green(0) < yellow(1) < red(2)
+        if (newStatus > switchSignal[swID]) {
+            switchSignal[swID] = newStatus;
+        }
     }
 }
 
 // ----------------------------------------------------------------------------
 // TOGGLE SWITCH STATE (Manual)
 // ----------------------------------------------------------------------------
-// Manually toggle a switch state.
-// ----------------------------------------------------------------------------
 void toggleSwitchState(int switchID) {
-    // Check bounds to be safe
     if (switchID >= 0 && switchID < numSwitches) {
         switchState[switchID] = !switchState[switchID];
     }
@@ -114,12 +160,9 @@ void toggleSwitchState(int switchID) {
 // ----------------------------------------------------------------------------
 // GET SWITCH STATE FOR DIRECTION
 // ----------------------------------------------------------------------------
-// Return the state for a given direction.
-// ----------------------------------------------------------------------------
 int getSwitchStateForDirection(int switchID, int direction) {
-    // Check bounds
     if (switchID >= 0 && switchID < numSwitches) {
         return switchState[switchID];
     }
-    return 0; // Default to straight if invalid ID
+    return 0;
 }

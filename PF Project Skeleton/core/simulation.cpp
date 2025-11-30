@@ -15,41 +15,63 @@ using namespace std;
 
 void initializeSimulation() {
     initializeSimulationState();
-    if(levelSeed != 0) srand(levelSeed);
-    else srand((unsigned int)time(0));
+    if (levelSeed != 0)
+        srand(levelSeed);
+    else
+        srand((unsigned int)time(0));
     simulationRunning = 1;
     currentTick = 0;
 }
 
 void simulateOneTick() {
-    if(!simulationRunning) return;
+    if (!simulationRunning) return;
 
+    // 1. Spawn trains scheduled for this tick
     spawnTrainsForTick();
+
+    // 2. Update switch counters from trains on switches
     updateSwitchCounters();
+
+    // 3. Queue automatic flips (based on counters and K-values)
     queueSwitchFlips();
+
+    // 4. Determine directions for all trains (based on current tiles + switchState)
     determineAllRoutes();
-    moveAllTrains();
-    applyDeferredFlips();
+
+    // 5. Compute signal lights based on *current* positions and directions.
+    //    These will be used to decide which trains must stop at red.
     updateSignalLights();
+
+    // 6. Move trains (obeying red signals, weather, safety, collisions)
+    moveAllTrains();
+
+    // 7. Apply queued switch flips AFTER movement
+    applyDeferredFlips();
+
+    // 8. Emergency halt logic
     applyEmergencyHalt();
     updateEmergencyHalt();
+
+    // 9. Check arrivals
     checkArrivals();
 
+    // 10. Recompute signals for visualization based on NEW positions
+    updateSignalLights();
+
+    // 11. Advance tick counter
     currentTick++;
 }
 
 // ----------------------------------------------------------------------------
-// FIXED: CHECK IF SIMULATION IS COMPLETE
+// CHECK IF SIMULATION IS COMPLETE
 // ----------------------------------------------------------------------------
 bool isSimulationComplete() {
-    //Do not end at tick 0
-    if(currentTick==0)return false;
-    //End if trains reached+crashed= total trains spawned
-    if(num_spawn>0&&(trainsReached+crashed_trains)>=num_spawn){
+    if (currentTick == 0) return false;
+
+    if (num_spawn > 0 && (trainsReached + crashed_trains) >= num_spawn)
         return true;
-    }
-    //Prevent infinite simulation
-    if(currentTick>1000)return true;
+
+    if (currentTick > 1000) return true;
 
     return false;
 }
