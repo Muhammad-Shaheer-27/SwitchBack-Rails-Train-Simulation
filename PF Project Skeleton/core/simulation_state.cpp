@@ -10,6 +10,7 @@ int number_column;
 int number_rows;
 char grid[maximum_rows][maximum_Columns];
 int safetyDelay[maximum_rows][maximum_Columns];
+char originalGrid[maximum_rows][maximum_Columns];
 
 //Trains variables
 int numOf_trains;

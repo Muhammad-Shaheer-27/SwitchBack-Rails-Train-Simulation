@@ -83,17 +83,28 @@ bool isDestinationPoint(int i,int j) {
 // Returns true if toggled successfully.
 // ----------------------------------------------------------------------------
 bool toggleSafetyTile(int i,int j) {
-    if(!isInBounds(i,j)) return 0;
-    if(grid[i][j]==space){
+     if(grid[i][j]=='='){
+        // Currently a safety tile so when we toggle off
+        // Check if this was an original safety tile
+        if(originalGrid[i][j]=='='){
+            //Replace safety tile with horizontal track
+            grid[i][j]='-';
+        }
+        else{
+            //Reset to original tile
+            grid[i][j] = originalGrid[i][j];
+        }
+        safetyDelay[i][j] = 0;
+    }
+    else{
+        // Currently not a safety tile so when we toggle on
+        //Store current tile
+        if(originalGrid[i][j]!='='&&originalGrid[i][j]==grid[i][j]){
+            // Save the original
+            originalGrid[i][j] = grid[i][j];
+        }
         grid[i][j]='=';
         safetyDelay[i][j]=1;
     }
-    else if(grid[i][j]=='='){
-        grid[i][j]=space;
-        safetyDelay[i][j]=0;
-    }
-    else{
-        return 0;
-    }
-    return 1;
+    return true;
 }

@@ -21,6 +21,7 @@ static sf::Vector2i g_lastDrag;
 static float g_cellSize = 24.0f;        // world units per grid cell
 static float g_gridOffsetX = 8.0f;      // margin from left
 static float g_gridOffsetY = 8.0f;      // margin from top
+static sf::Font g_font;
 
 // ----------------------------------------------------------------------------
 // INITIALIZATION
@@ -48,8 +49,51 @@ bool initializeApp() {
     // initialize view to whole window
     g_camera = sf::View(sf::FloatRect(0.0f, 0.0f, (float)width, (float)height));
     g_window->setView(g_camera);
+    if (!g_font.loadFromFile("sfml/Roboto.ttf")) {
+        cout << "Failed to load font\n";
+        return false;
+    }
+    
+    // Initialize originalGrid for toggle functionality
+    for (int r = 0; r < number_rows; r++) {
+        for (int c = 0; c < number_column; c++) {
+            originalGrid[r][c] = grid[r][c];
+        }
+    }
+    
+    return true;   
+}
+static void drawMetrics(sf::RenderWindow &win) {
+    sf::Text text;
+    text.setFont(g_font);
+    text.setCharacterSize(20);
+    text.setFillColor(sf::Color::Green);
 
-    return true;
+    std::string weatherStr;
+    switch(weather_type) {
+        case 0: weatherStr = "Normal"; break;
+        case 1: weatherStr = "Rain"; break;
+        case 2: weatherStr = "Fog"; break;
+        default: weatherStr = "Unknown"; break;
+    }
+
+    std::string statusStr = g_isPaused ? "STOPPED" : "RUNNING";
+
+    std::string metricsStr;
+    metricsStr += "Switchback Rails\n";
+    metricsStr += "Status: " + statusStr + "\n";
+    metricsStr += "Tick: " + std::to_string(currentTick) + "\n";
+    metricsStr += "Active Trains: " + std::to_string(numOf_trains) + "\n";
+    metricsStr += "Delivered Trains: " + std::to_string(trainsReached) + "\n";
+    metricsStr += "Crashed Trains: " + std::to_string(crashed_trains) + "\n";
+    metricsStr += "Weather: " + weatherStr + "\n";
+
+    text.setString(metricsStr);
+
+    float x = 10.0f; // still a small padding from left
+    float y = win.getSize().y - text.getLocalBounds().height - 10.0f; // 10 px from bottom
+    text.setPosition(x, y);
+    win.draw(text);
 }
 
 // ----------------------------------------------------------------------------
@@ -66,8 +110,11 @@ static void drawTile(sf::RenderWindow &win, int r, int c, char ch) {
     // Inner shape for track/objects
     sf::RectangleShape inner(sf::Vector2f(g_cellSize - 6.0f, g_cellSize - 6.0f));
     inner.setPosition(g_gridOffsetX + c * g_cellSize + 3.0f, g_gridOffsetY + r * g_cellSize + 3.0f);
-
-    if (ch == '-' || ch == '=' || ch == '|' || ch == '+' || ch == '/' || ch == '\\') {
+    if (ch == '=') {
+        inner.setFillColor(sf::Color(0, 200, 200)); // CYAN = Active safety tile
+        win.draw(inner);
+    }
+    if (ch == '-' || ch == '|' || ch == '+' || ch == '/' || ch == '\\') {
         inner.setFillColor(sf::Color(170,170,170)); // Tracks
         win.draw(inner);
     } else if (ch == 'S') {
@@ -83,30 +130,32 @@ static void drawTile(sf::RenderWindow &win, int r, int c, char ch) {
         // BONUS: Add Signal Light on top of switch if needed
         int sIdx = getSwitchIndex(r, c);
         if (sIdx != -1) {
-            sf::CircleShape signal(g_cellSize / 6.0f);
-            signal.setPosition(g_gridOffsetX + c * g_cellSize + g_cellSize/2.0f, 
-                               g_gridOffsetY + r * g_cellSize + g_cellSize/2.0f);
+            float cx = g_gridOffsetX + c * g_cellSize + g_cellSize * 0.5f;
+            float cy = g_gridOffsetY + r * g_cellSize + g_cellSize * 0.5f;
+            float radius = g_cellSize / 6.0f;
+            sf::CircleShape signal(radius);
+            signal.setOrigin(radius, radius);
+            signal.setPosition(cx, cy);
             // 0=Green, 1=Yellow, 2=Red
             if (switchSignal[sIdx] == 0) signal.setFillColor(sf::Color::Green);
             else if (switchSignal[sIdx] == 1) signal.setFillColor(sf::Color::Yellow);
             else signal.setFillColor(sf::Color::Red);
             win.draw(signal);
         }
-    } else if (ch == '=') {
-        inner.setFillColor(sf::Color(0, 200, 200)); // Safety Tile
-        win.draw(inner);
-    }
+    } 
 }
 
 // ----------------------------------------------------------------------------
 // HELPER: DRAW TRAIN
 // ----------------------------------------------------------------------------
 static void drawTrain(sf::RenderWindow &win, int r, int c, int colorIdx) {
-    sf::CircleShape circ(g_cellSize/2.5f);
+    float radius = g_cellSize / 2.5f;
+    sf::CircleShape circ(radius);
     // Center calculation
-    float offset = (g_cellSize - circ.getRadius()*2)/2.0f;
-    circ.setPosition(g_gridOffsetX + c * g_cellSize + offset,
-                     g_gridOffsetY + r * g_cellSize + offset);
+    circ.setOrigin(radius, radius);
+    float cx = g_gridOffsetX + c * g_cellSize + g_cellSize * 0.5f;
+    float cy = g_gridOffsetY + r * g_cellSize + g_cellSize * 0.5f;
+    circ.setPosition(cx, cy);
 
     // simple color palette for colorIdx
     sf::Color cols[8] = {
@@ -115,9 +164,9 @@ static void drawTrain(sf::RenderWindow &win, int r, int c, int colorIdx) {
         sf::Color(40,200,80),   // Green
         sf::Color(200,180,40),  // Yellow
         sf::Color(160,80,200),  // Purple
-        sf::Color(40,200,200),  // Cyan
+        sf::Color(140,40,240),  // Magenta  
         sf::Color(220,120,40),  // Orange
-        sf::Color(200,200,200)  // White
+        sf::Color(0,0,0)       // Black
     };
     int idx = (colorIdx >=0 && colorIdx < 8) ? colorIdx : 0;
     circ.setFillColor(cols[idx]);
@@ -253,6 +302,12 @@ void runApp() {
                 logSwitchState();
                 logSignalState();
                 
+                // Check if simulation is complete (all trains arrived or crashed)
+                if (isSimulationComplete()) {
+                    g_isPaused = true;
+                    cout << "Simulation complete! All trains have arrived or crashed.\n";
+                }
+                
                 if (g_stepOnce) g_stepOnce = false;
             }
             accumulator -= MS_PER_TICK;
@@ -291,7 +346,7 @@ void runApp() {
                 }
             }
         }
-
+        drawMetrics(*g_window);
         g_window->display();
     }
 }

@@ -132,7 +132,12 @@ bool determineNextPosition(int trainID, int &nextRow, int &nextColumn) {
 int getNextDirection(int trainID, int row, int col) {
     char track = grid[row][col];   // Tile train is currently on
 
-    // --- Regular track pieces (no switch logic yet) ---
+     if(track=='='){
+        track=originalGrid[trainRow[trainID]][trainColumn[trainID]];
+        // If original is safety track treat as horizontal track
+        if(track == '=') track = '-';
+    }
+    //Normal track logic
     switch (track) {
         case spawn:
         case destination:
@@ -384,9 +389,6 @@ void detectCollisions(int nextRow[], int nextCol[], int nextDir[]) {
                 if (getDestinationForTrain(j, destRj, destCj))
                     dist_j = abs(nextRow[j] - destRj) + abs(nextCol[j] - destCj);
 
-                // The same logic for normal tiles and crossings:
-                //  - if equal distance then they both crash
-                //  - farther train waits and closer one moves.
                 if (dist_i == dist_j) {
                     // Both crash
                     nextRow[i]    = -1;
@@ -399,13 +401,13 @@ void detectCollisions(int nextRow[], int nextCol[], int nextDir[]) {
                     trainColumn[j]= -1;
                     crashed_trains += 2;
                 } else if (dist_i > dist_j) {
-                    // Train i is farther from its destination -> it waits
-                    nextRow[i] = trainRow[i];
-                    nextCol[i] = trainColumn[i];
-                } else {
-                    // Train j is farther -> it waits
+                    // Train i is farther from its destination so it moves
                     nextRow[j] = trainRow[j];
                     nextCol[j] = trainColumn[j];
+                } else {
+                    // Train j is farther from its destination so it moves
+                    nextRow[i] = trainRow[i];
+                    nextCol[i] = trainColumn[i];
                 }
             }
 
@@ -416,6 +418,33 @@ void detectCollisions(int nextRow[], int nextCol[], int nextDir[]) {
                 // If one or both already removed, skip
                 if (nextRow[i] == -1 || nextRow[j] == -1) continue;
 
+                //Check if straight track only
+                char tile_i = grid[trainRow[i]][trainColumn[i]];
+                char tile_j = grid[trainRow[j]][trainColumn[j]];
+    
+                // If current tile is safety, check original tile
+                if (tile_i == '=') tile_i = originalGrid[trainRow[i]][trainColumn[i]];
+                if (tile_j == '=') tile_j = originalGrid[trainRow[j]][trainColumn[j]];
+    
+                // If both trains are on straight tracks (not crossings), they MUST crash
+                bool isStraightTrack_i = (tile_i == '|' || tile_i == '-');
+                bool isStraightTrack_j = (tile_j == '|' || tile_j == '-');
+                bool isSafety_i = (grid[trainRow[i]][trainColumn[i]] == '=');
+                bool isSafety_j = (grid[trainRow[j]][trainColumn[j]] == '=');
+    
+                if(isStraightTrack_i && isStraightTrack_j || isSafety_i || isSafety_j){
+                    //Crash Trains if no path avaliable
+                    nextRow[i]=-1;
+                    nextCol[i]=-1;
+                    nextRow[j]=-1;
+                    nextCol[j]=-1;
+                    trainRow[i]=-1;
+                    trainColumn[i]=-1;
+                    trainRow[j]=-1;
+                    trainColumn[j]=-1;
+                    crashed_trains+=2;
+                    continue; //Skip manhattan distance check
+                }
                 int destRi, destCi, destRj, destCj;
                 int dist_i = 0, dist_j = 0;
 
@@ -436,13 +465,13 @@ void detectCollisions(int nextRow[], int nextCol[], int nextDir[]) {
                     trainColumn[j] = -1;
                     crashed_trains += 2;
                 } else if (dist_i > dist_j) {
-                    // i is farther, so i waits and j moves
-                    nextRow[i] = trainRow[i];
-                    nextCol[i] = trainColumn[i];
-                } else {
-                    // j is farther, so j waits and i moves
+                    // i is farther from its destination so it moves
                     nextRow[j] = trainRow[j];
                     nextCol[j] = trainColumn[j];
+                } else {
+                    // j is farther from its destination so it moves
+                    nextRow[i] = trainRow[i];
+                    nextCol[i] = trainColumn[i];
                 }
             }
         }

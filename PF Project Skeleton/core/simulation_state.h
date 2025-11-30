@@ -89,6 +89,7 @@ extern int number_column;
 extern int number_rows;
 extern char grid[maximum_rows][maximum_Columns];
 extern int safetyDelay[maximum_rows][maximum_Columns];    //Remaining ticks on a =tile 
+extern char originalGrid[maximum_rows][maximum_Columns]; //Original grid for resetting safety tiles
 
 // ----------------------------------------------------------------------------
 // GLOBAL STATE: TRAINS
