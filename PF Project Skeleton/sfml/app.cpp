@@ -137,9 +137,9 @@ static void drawTile(sf::RenderWindow &win, int r, int c, char ch) {
             signal.setOrigin(radius, radius);
             signal.setPosition(cx, cy);
             // 0=Green, 1=Yellow, 2=Red
-            if (switchSignal[sIdx] == 0) signal.setFillColor(sf::Color::Green);
+            if (switchSignal[sIdx] == 0) signal.setFillColor(sf::Color::Red);
             else if (switchSignal[sIdx] == 1) signal.setFillColor(sf::Color::Yellow);
-            else signal.setFillColor(sf::Color::Red);
+            else signal.setFillColor(sf::Color::Green);
             win.draw(signal);
         }
     } 

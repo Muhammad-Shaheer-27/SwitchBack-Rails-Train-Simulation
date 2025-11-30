@@ -1,8 +1,8 @@
 SIMULATION REPORT
 -----------------
-Total Ticks: 38
-Trains Reached to Destination: 0
+Total Ticks: 82
+Trains Reached to Destination: 8
 Trains Crashed: 0
-Total Waiting Time: 84
+Total Waiting Time: 193
 Total Energy Used: 0
 Switch Flips: 2

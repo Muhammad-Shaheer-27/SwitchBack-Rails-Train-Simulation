@@ -26,42 +26,25 @@ void initializeSimulation() {
 void simulateOneTick() {
     if (!simulationRunning) return;
 
-    // 1. Spawn trains scheduled for this tick
     spawnTrainsForTick();
-
-    // 2. Update switch counters from trains on switches
     updateSwitchCounters();
-
-    // 3. Queue automatic flips (based on counters and K-values)
     queueSwitchFlips();
-
-    // 4. Determine directions for all trains (based on current tiles + switchState)
     determineAllRoutes();
 
-    // 5. Compute signal lights based on *current* positions and directions.
-    //    These will be used to decide which trains must stop at red.
+    // Update signals BEFORE moving – trains will obey these
     updateSignalLights();
 
-    // 6. Move trains (obeying red signals, weather, safety, collisions)
     moveAllTrains();
-
-    // 7. Apply queued switch flips AFTER movement
     applyDeferredFlips();
-
-    // 8. Emergency halt logic
     applyEmergencyHalt();
     updateEmergencyHalt();
-
-    // 9. Check arrivals
     checkArrivals();
 
-    // 10. Recompute signals for visualization based on NEW positions
+    // Update signals AFTER moving – for correct visualization of new positions
     updateSignalLights();
 
-    // 11. Advance tick counter
     currentTick++;
 }
-
 // ----------------------------------------------------------------------------
 // CHECK IF SIMULATION IS COMPLETE
 // ----------------------------------------------------------------------------

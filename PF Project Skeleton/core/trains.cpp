@@ -281,7 +281,7 @@ void moveAllTrains() {
         // If train is on a switch and that switch shows RED, stop for 1 tick.
         if (isSwitchTile(trainRow[i], trainColumn[i])) {
             int swID = getSwitchIndex(trainRow[i], trainColumn[i]);
-            if (swID >= 0 && swID < maximum_switches) {
+            if (swID >= 0 && swID < numSwitches) {
                 if (switchSignal[swID] == sigal_red) {  // RED
                     nextRow[i] = trainRow[i];
                     nextCol[i] = trainColumn[i];

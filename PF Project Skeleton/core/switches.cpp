@@ -80,70 +80,70 @@ void applyDeferredFlips() {
 // Red (2): next tile is blocked/out-of-bounds/not track OR next tile is occupied.
 // ----------------------------------------------------------------------------
 void updateSignalLights() {
-    // Default all signals to GREEN for all possible letters A..Z
+    // We track severity per switch letter A..Z:
+    // 0 = green, 1 = yellow, 2 = red
+    int severity[maximum_switches];
+    bool hasSwitch[maximum_switches];
+
     for (int i = 0; i < maximum_switches; i++) {
-        switchSignal[i] = signal_green;
+        severity[i] = signal_green;   // default: green
+        hasSwitch[i] = false;
     }
 
-    // For each train, if it is standing on a switch, compute that switch's signal
-    for (int t = 0; t < numOf_trains; t++) {
-        if (trainRow[t] == -1) continue;
+    // Scan entire grid for switch tiles and trains around them
+    for (int r = 0; r < number_rows; r++) {
+        for (int c = 0; c < number_column; c++) {
+            char tile = grid[r][c];
+            if (tile < 'A' || tile > 'Z') continue;   // not a switch tile
 
-        int r = trainRow[t];
-        int c = trainColumn[t];
+            int swID = tile - 'A';
+            if (swID < 0 || swID >= maximum_switches) continue;
+            hasSwitch[swID] = true;
 
-        if (!isSwitchTile(r, c)) continue;
+            int sev = severity[swID]; // current severity for this letter
 
-        int swID = getSwitchIndex(r, c);
-        if (swID < 0 || swID >= maximum_switches) continue;
+            // 1) Check distance 1 for any train -> RED
+            for (int dir = 0; dir < 4; dir++) {
+                int r1 = r + row_change[dir];
+                int c1 = c + column_change[dir];
+                if (!isInBounds(r1, c1)) continue;
 
-        int dir = trainDirection[t];
-
-        bool red = false;
-        bool yellow = false;
-
-        // 1 tile ahead in current direction
-        int r1 = r + row_change[dir];
-        int c1 = c + column_change[dir];
-
-        // If out-of-bounds or not traversable, it's RED
-        if (!isInBounds(r1, c1) ||
-            !(isTrackTile(r1, c1) || isSwitchTile(r1, c1) ||
-              grid[r1][c1] == spawn || grid[r1][c1] == destination || grid[r1][c1] == '=')) {
-            red = true;
-        } else {
-            // If another train is currently on the next tile, it's RED
-            for (int k = 0; k < numOf_trains; k++) {
-                if (k == t) continue;
-                if (trainRow[k] == r1 && trainColumn[k] == c1) {
-                    red = true;
-                    break;
+                for (int t = 0; t < numOf_trains; t++) {
+                    if (trainRow[t] == r1 && trainColumn[t] == c1) {
+                        sev = sigal_red;    // 2
+                        goto done_near;     // no need to check more for this tile
+                    }
                 }
             }
 
-            // If not RED, check two tiles ahead for YELLOW
-            if (!red) {
-                int r2 = r1 + row_change[dir];
-                int c2 = c1 + column_change[dir];
+            // 2) If not RED, check distance 2 for any train -> YELLOW
+            if (sev != sigal_red) {
+                for (int dir = 0; dir < 4; dir++) {
+                    int r2 = r + 2 * row_change[dir];
+                    int c2 = c + 2 * column_change[dir];
+                    if (!isInBounds(r2, c2)) continue;
 
-                if (isInBounds(r2, c2)) {
-                    for (int k = 0; k < numOf_trains; k++) {
-                        if (trainRow[k] == r2 && trainColumn[k] == c2) {
-                            yellow = true;
-                            break;
+                    for (int t = 0; t < numOf_trains; t++) {
+                        if (trainRow[t] == r2 && trainColumn[t] == c2) {
+                            if (sev < signal_yellow) {
+                                sev = signal_yellow;  // 1
+                            }
                         }
                     }
                 }
             }
+
+        done_near:
+            severity[swID] = sev;
         }
+    }
 
-        int newStatus = signal_green;
-        if (red) newStatus = sigal_red;         // NOTE: constant name 'sigal_red' in header
-        else if (yellow) newStatus = signal_yellow;
-
-        // Use highest severity per switch: green(0) < yellow(1) < red(2)
-        if (newStatus > switchSignal[swID]) {
-            switchSignal[swID] = newStatus;
+    // Apply severity to switchSignal[]
+    for (int i = 0; i < maximum_switches; i++) {
+        if (hasSwitch[i]) {
+            switchSignal[i] = severity[i];
+        } else {
+            switchSignal[i] = signal_green;
         }
     }
 }
