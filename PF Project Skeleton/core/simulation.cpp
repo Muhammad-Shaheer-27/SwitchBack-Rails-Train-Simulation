@@ -15,46 +15,41 @@ using namespace std;
 
 void initializeSimulation() {
     initializeSimulationState();
-    if (levelSeed != 0)
-        srand(levelSeed);
-    else
-        srand((unsigned int)time(0));
+    if(levelSeed != 0) srand(levelSeed);
+    else srand((unsigned int)time(0));
     simulationRunning = 1;
     currentTick = 0;
 }
 
 void simulateOneTick() {
-    if (!simulationRunning) return;
+    if(!simulationRunning) return;
 
     spawnTrainsForTick();
     updateSwitchCounters();
     queueSwitchFlips();
     determineAllRoutes();
-
-    // Update signals BEFORE moving – trains will obey these
-    updateSignalLights();
-
     moveAllTrains();
     applyDeferredFlips();
+    updateSignalLights();
     applyEmergencyHalt();
     updateEmergencyHalt();
     checkArrivals();
 
-    // Update signals AFTER moving – for correct visualization of new positions
-    updateSignalLights();
-
     currentTick++;
 }
+
 // ----------------------------------------------------------------------------
-// CHECK IF SIMULATION IS COMPLETE
+// FIXED: CHECK IF SIMULATION IS COMPLETE
 // ----------------------------------------------------------------------------
 bool isSimulationComplete() {
-    if (currentTick == 0) return false;
-
-    if (num_spawn > 0 && (trainsReached + crashed_trains) >= num_spawn)
+    //Do not end at tick 0
+    if(currentTick==0)return false;
+    //End if trains reached+crashed= total trains spawned
+    if(num_spawn>0&&(trainsReached+crashed_trains)>=num_spawn){
         return true;
-
-    if (currentTick > 1000) return true;
+    }
+    //Prevent infinite simulation
+    if(currentTick>1000)return true;
 
     return false;
 }

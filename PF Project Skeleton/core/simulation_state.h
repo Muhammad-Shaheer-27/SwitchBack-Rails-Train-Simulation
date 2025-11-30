@@ -36,7 +36,7 @@ extern const int column_change[4];
 // TRAIN CONSTANTS
 // ----------------------------------------------------------------------------
 const int max_trains=20;
-const int max_colors=8;
+const int max_colors=10;
 //Train Directions
 const int train_up=0;
 const int train_right=1;
@@ -55,10 +55,6 @@ const int max_switches_state=2;
 const char start_switch='A';
 const char end_switch='Z';
 //Switch Directions
-const int K_up=0;
-const int K_right=1;
-const int K_down=2;
-const int K_left=3;
 const int switch_max_K=3;
 //Switch modes
 const int PER_DIR=0;
